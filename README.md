@@ -1,23 +1,23 @@
 # Real Estate Mobile
 
-Мобильное приложение платформы недвижимости на `Expo + React Native`.
+Mobile app for a real estate platform, built with `Expo + React Native`.
 
-## О проекте
+## Overview
 
-Приложение развивается как часть дипломного проекта для платформы недвижимости:
-- B2B2C-модель (пользователь, агентство, застройщик, администратор)
-- регистрация и авторизация по ролям
-- дальнейшие этапы: каталог, карта, карточка объекта, заявки, чат, dashboard
+This project is part of a diploma system and follows a **B2B2C** product model:
+- End users can browse listings and submit applications.
+- Companies (agencies/developers) can publish and manage listings after verification.
+- Admin flow includes moderation and status control.
 
-## Текущий статус
+## Current Progress
 
-Уже реализовано:
-- экран входа (`/login`)
-- экран восстановления пароля (`/forgot-password`)
-- многошаговая регистрация (`/register`)
-- базовые UI-компоненты (чекбокс, фоновые эффекты, формы)
+Implemented screens and flows:
+- Login screen (`/login`)
+- Forgot password screen (`/forgot-password`)
+- Multi-step registration (`/register`)
+- Shared UI components (checkbox, backgrounds, form controls)
 
-## Технологии
+## Tech Stack
 
 - `Expo`
 - `React Native`
@@ -26,42 +26,51 @@
 - `expo-document-picker`
 - `react-native-svg`
 
-## Быстрый старт
+## Getting Started
 
-1. Установить зависимости:
+1. Install dependencies:
 
 ```bash
 npm install
 ```
 
-2. Запустить проект:
+2. Start development server:
 
 ```bash
 npx expo start
 ```
 
-3. Для чистого старта Metro (рекомендуется при UI-изменениях):
+3. Start with clean Metro cache (recommended after UI updates):
 
 ```bash
 npx expo start -c
 ```
 
-## Структура
+## Project Structure
 
-- `app/` — экраны и роуты (Expo Router)
-- `components/` — переиспользуемые UI-компоненты
-- `assets/` — иконки и статические ресурсы
+- `app/` — route-based screens (`expo-router`)
+- `components/` — reusable UI blocks
+- `assets/` — icons and static assets
 
-## Команды
+## Useful Commands
 
 ```bash
-# Линтинг
+# Lint
 npm run lint
 
-# Запуск с очисткой кэша
+# Start Expo with cache reset
 npx expo start -c
 ```
 
-## Репозиторий
+## Git Workflow
+
+Branch strategy used in this repo:
+- `main` — stable production-ready state
+- `develop` — integration branch
+- `feature/*` — feature work
+- `fix/*` — bug fixes
+- `docs/*` — documentation updates
+
+## Repository
 
 GitHub: [xwvwww/Real-Estate-Mobile](https://github.com/xwvwww/Real-Estate-Mobile)

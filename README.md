@@ -1,50 +1,67 @@
-# Welcome to your Expo app 👋
+# Real Estate Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Мобильное приложение платформы недвижимости на `Expo + React Native`.
 
-## Get started
+## О проекте
 
-1. Install dependencies
+Приложение развивается как часть дипломного проекта для платформы недвижимости:
+- B2B2C-модель (пользователь, агентство, застройщик, администратор)
+- регистрация и авторизация по ролям
+- дальнейшие этапы: каталог, карта, карточка объекта, заявки, чат, dashboard
 
-   ```bash
-   npm install
-   ```
+## Текущий статус
 
-2. Start the app
+Уже реализовано:
+- экран входа (`/login`)
+- экран восстановления пароля (`/forgot-password`)
+- многошаговая регистрация (`/register`)
+- базовые UI-компоненты (чекбокс, фоновые эффекты, формы)
 
-   ```bash
-   npx expo start
-   ```
+## Технологии
 
-In the output, you'll find options to open the app in a
+- `Expo`
+- `React Native`
+- `Expo Router`
+- `TypeScript`
+- `expo-document-picker`
+- `react-native-svg`
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Быстрый старт
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+1. Установить зависимости:
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Запустить проект:
 
-## Learn more
+```bash
+npx expo start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+3. Для чистого старта Metro (рекомендуется при UI-изменениях):
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+npx expo start -c
+```
 
-## Join the community
+## Структура
 
-Join our community of developers creating universal apps.
+- `app/` — экраны и роуты (Expo Router)
+- `components/` — переиспользуемые UI-компоненты
+- `assets/` — иконки и статические ресурсы
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Команды
+
+```bash
+# Линтинг
+npm run lint
+
+# Запуск с очисткой кэша
+npx expo start -c
+```
+
+## Репозиторий
+
+GitHub: [xwvwww/Real-Estate-Mobile](https://github.com/xwvwww/Real-Estate-Mobile)

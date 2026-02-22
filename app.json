@@ -1,17 +1,19 @@
 {
   "expo": {
-    "name": "real-estate-app",
+    "name": "RealEstate",
     "slug": "real-estate-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "realestateapp",
+    "scheme": "realestate",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.realestate.app"
     },
     "android": {
+      "package": "com.realestate.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

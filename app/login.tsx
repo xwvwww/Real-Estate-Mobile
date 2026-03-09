@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -10,15 +11,50 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import LoginPageIcon from '@/assets/images/LoginPageIcon.svg';
 
 export default function LoginScreen() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const canLogin = email.trim().length > 0 && password.trim().length > 0;
+
+  const onLogin = () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPassword = password.trim();
+
+    if (normalizedEmail === 'testuser@gmail.com' && normalizedPassword === '123456') {
+      router.replace('/(tabs)');
+      return;
+    }
+
+    if (
+      (normalizedEmail === 'testmoderator@gmail.com' ||
+        normalizedEmail === 'testmoderator@gmai.com') &&
+      normalizedPassword === '12345'
+    ) {
+      router.replace('/moderator-dashboard');
+      return;
+    }
+
+    if (normalizedEmail === 'testagency@gmail.com' && normalizedPassword === '123456') {
+      router.replace('/agency-dashboard');
+      return;
+    }
+
+    if (normalizedEmail === 'testdeveloper@gmail.com' && normalizedPassword === '123456') {
+      router.replace('/developer-dashboard');
+      return;
+    }
+
+    Alert.alert(
+      'Неверные данные',
+      'Тестовые аккаунты: testuser@gmail.com / 123456, testmoderator@gmail.com / 12345, testagency@gmail.com / 123456, testdeveloper@gmail.com / 123456'
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -75,6 +111,7 @@ export default function LoginScreen() {
           <Pressable
             style={[styles.primaryButton, !canLogin && styles.primaryButtonDisabled]}
             disabled={!canLogin}
+            onPress={onLogin}
           >
             <Text style={[styles.primaryButtonText, !canLogin && styles.primaryButtonTextDisabled]}>
               Войти

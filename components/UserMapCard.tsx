@@ -1,5 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+<<<<<<< HEAD
 import { useState } from 'react';
+=======
+>>>>>>> a6cf9b0a1952f5ef070b197f1a41b9f238c917b2
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 type Marker = {
@@ -28,6 +31,7 @@ export default function UserMapCard() {
   const Marker = MapLibreModule?.Marker;
   const UrlTile = MapLibreModule?.UrlTile;
   const hasNativeMap = Boolean(MapView && Marker && UrlTile);
+<<<<<<< HEAD
   const [region, setRegion] = useState({
     latitude: 43.238,
     longitude: 76.944,
@@ -47,6 +51,8 @@ export default function UserMapCard() {
       longitudeDelta: nextDelta,
     }));
   };
+=======
+>>>>>>> a6cf9b0a1952f5ef070b197f1a41b9f238c917b2
 
   return (
     <View style={styles.mapCard}>
@@ -54,8 +60,17 @@ export default function UserMapCard() {
         <>
           <MapView
             style={StyleSheet.absoluteFill}
+<<<<<<< HEAD
             region={region}
             onRegionChangeComplete={setRegion}
+=======
+            initialRegion={{
+              latitude: 43.238,
+              longitude: 76.944,
+              latitudeDelta: 0.18,
+              longitudeDelta: 0.18,
+            }}
+>>>>>>> a6cf9b0a1952f5ef070b197f1a41b9f238c917b2
           >
             <UrlTile urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maximumZ={19} />
 
@@ -83,6 +98,17 @@ export default function UserMapCard() {
           <Text style={styles.cityTitle}>Алматы</Text>
           <Text style={styles.citySubtitle}>Карта объектов</Text>
         </View>
+<<<<<<< HEAD
+=======
+        <View style={styles.mapActions}>
+          <Pressable style={styles.mapIconBtn}>
+            <Text style={styles.mapActionText}>+</Text>
+          </Pressable>
+          <Pressable style={styles.mapIconBtn}>
+            <Text style={styles.mapActionText}>−</Text>
+          </Pressable>
+        </View>
+>>>>>>> a6cf9b0a1952f5ef070b197f1a41b9f238c917b2
       </View>
 
       <Pressable style={styles.listButton}>
@@ -90,6 +116,7 @@ export default function UserMapCard() {
         <Text style={styles.listButtonText}>Список</Text>
       </Pressable>
 
+<<<<<<< HEAD
       <View style={styles.mapActions}>
         <Pressable style={styles.mapIconBtn} onPress={() => onZoom('in')}>
           <Text style={styles.mapActionText}>+</Text>
@@ -99,6 +126,8 @@ export default function UserMapCard() {
         </Pressable>
       </View>
 
+=======
+>>>>>>> a6cf9b0a1952f5ef070b197f1a41b9f238c917b2
       <Pressable style={styles.mapScopeButton}>
         <Text style={styles.mapScopeText}>Показать объекты в этой области</Text>
       </Pressable>
@@ -157,9 +186,12 @@ const styles = StyleSheet.create({
     color: '#939393',
   },
   mapActions: {
+<<<<<<< HEAD
     position: 'absolute',
     right: 16,
     top: 56,
+=======
+>>>>>>> a6cf9b0a1952f5ef070b197f1a41b9f238c917b2
     gap: 8,
   },
   mapIconBtn: {

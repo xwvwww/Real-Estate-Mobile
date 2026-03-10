@@ -19,8 +19,11 @@ export default function RootLayout() {
         <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
         <Stack.Screen name="register" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+<<<<<<< HEAD
         <Stack.Screen name="object/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="object-application" options={{ headerShown: false }} />
+=======
+>>>>>>> a6cf9b0a1952f5ef070b197f1a41b9f238c917b2
         <Stack.Screen name="moderator-dashboard" options={{ headerShown: false }} />
         <Stack.Screen name="agency-dashboard" options={{ headerShown: false }} />
         <Stack.Screen name="developer-dashboard" options={{ headerShown: false }} />

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 type Marker = {
@@ -27,6 +28,25 @@ export default function UserMapCard() {
   const Marker = MapLibreModule?.Marker;
   const UrlTile = MapLibreModule?.UrlTile;
   const hasNativeMap = Boolean(MapView && Marker && UrlTile);
+  const [region, setRegion] = useState({
+    latitude: 43.238,
+    longitude: 76.944,
+    latitudeDelta: 0.18,
+    longitudeDelta: 0.18,
+  });
+
+  const onZoom = (dir: 'in' | 'out') => {
+    const nextDelta =
+      dir === 'in'
+        ? Math.max(region.latitudeDelta * 0.7, 0.01)
+        : Math.min(region.latitudeDelta * 1.35, 0.7);
+
+    setRegion((prev) => ({
+      ...prev,
+      latitudeDelta: nextDelta,
+      longitudeDelta: nextDelta,
+    }));
+  };
 
   return (
     <View style={styles.mapCard}>
@@ -34,12 +54,8 @@ export default function UserMapCard() {
         <>
           <MapView
             style={StyleSheet.absoluteFill}
-            initialRegion={{
-              latitude: 43.238,
-              longitude: 76.944,
-              latitudeDelta: 0.18,
-              longitudeDelta: 0.18,
-            }}
+            region={region}
+            onRegionChangeComplete={setRegion}
           >
             <UrlTile urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maximumZ={19} />
 
@@ -67,20 +83,21 @@ export default function UserMapCard() {
           <Text style={styles.cityTitle}>Алматы</Text>
           <Text style={styles.citySubtitle}>Карта объектов</Text>
         </View>
-        <View style={styles.mapActions}>
-          <Pressable style={styles.mapIconBtn}>
-            <Text style={styles.mapActionText}>+</Text>
-          </Pressable>
-          <Pressable style={styles.mapIconBtn}>
-            <Text style={styles.mapActionText}>−</Text>
-          </Pressable>
-        </View>
       </View>
 
       <Pressable style={styles.listButton}>
         <Ionicons name="list-outline" size={16} color="#3A3A3A" />
         <Text style={styles.listButtonText}>Список</Text>
       </Pressable>
+
+      <View style={styles.mapActions}>
+        <Pressable style={styles.mapIconBtn} onPress={() => onZoom('in')}>
+          <Text style={styles.mapActionText}>+</Text>
+        </Pressable>
+        <Pressable style={styles.mapIconBtn} onPress={() => onZoom('out')}>
+          <Text style={styles.mapActionText}>−</Text>
+        </Pressable>
+      </View>
 
       <Pressable style={styles.mapScopeButton}>
         <Text style={styles.mapScopeText}>Показать объекты в этой области</Text>
@@ -140,6 +157,9 @@ const styles = StyleSheet.create({
     color: '#939393',
   },
   mapActions: {
+    position: 'absolute',
+    right: 16,
+    top: 56,
     gap: 8,
   },
   mapIconBtn: {

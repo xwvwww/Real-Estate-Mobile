@@ -13,7 +13,7 @@ const ROUTE_CONFIG: Record<
 > = {
   index: { label: 'Главная', icon: 'home-outline' },
   projects: { label: 'Каталог', icon: 'search-outline' },
-  analytics: { label: 'Избранное', icon: 'heart-outline' },
+  favorites: { label: 'Избранное', icon: 'heart-outline' },
   profile: { label: 'Профиль', icon: 'person-outline' },
 };
 

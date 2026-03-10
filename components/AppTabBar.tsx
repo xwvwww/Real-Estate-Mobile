@@ -13,7 +13,11 @@ const ROUTE_CONFIG: Record<
 > = {
   index: { label: 'Главная', icon: 'home-outline' },
   projects: { label: 'Каталог', icon: 'search-outline' },
+<<<<<<< HEAD
+  favorites: { label: 'Избранное', icon: 'heart-outline' },
+=======
   analytics: { label: 'Избранное', icon: 'heart-outline' },
+>>>>>>> origin/develop
   profile: { label: 'Профиль', icon: 'person-outline' },
 };
 

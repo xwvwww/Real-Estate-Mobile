@@ -1,98 +1,223 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import UserMapCard from '@/components/UserMapCard';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+type Listing = {
+  id: string;
+  type: string;
+  price: string;
+  title: string;
+  address: string;
+  beds: string;
+  area: string;
+  floor: string;
+  photoColor: string;
+};
 
-export default function HomeScreen() {
+const LISTINGS: Listing[] = [
+  {
+    id: '1',
+    type: 'Квартира',
+    price: '12 500 000 ₸',
+    title: '2-комнатная квартира',
+    address: 'ул. Абая 150',
+    beds: '2',
+    area: '65 м²',
+    floor: '5 этаж',
+    photoColor: '#E8DDD2',
+  },
+  {
+    id: '2',
+    type: 'Квартира',
+    price: '18 900 000 ₸',
+    title: '3-комнатная квартира',
+    address: 'пр. Достык 97',
+    beds: '3',
+    area: '95 м²',
+    floor: '12 этаж',
+    photoColor: '#DDE7F0',
+  },
+  {
+    id: '3',
+    type: 'Новостройка',
+    price: '9 200 000 ₸',
+    title: 'Студия в новостройке',
+    address: 'ул. Розыбакиева 289',
+    beds: '1',
+    area: '38 м²',
+    floor: '8 этаж',
+    photoColor: '#E7ECD5',
+  },
+  {
+    id: '4',
+    type: 'Дом',
+    price: '45 000 000 ₸',
+    title: 'Коттедж с участком',
+    address: 'мкр. Алатау, ул. Жулдыз 45',
+    beds: '5',
+    area: '220 м²',
+    floor: '2 этаж',
+    photoColor: '#CFD8E8',
+  },
+];
+
+function StatRow({ beds, area, floor }: { beds: string; area: string; floor: string }) {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <View style={styles.statsRow}>
+      <View style={styles.statItem}>
+        <Ionicons name="bed-outline" size={14} color="#737373" />
+        <Text style={styles.statText}>{beds}</Text>
+      </View>
+      <View style={styles.statItem}>
+        <Ionicons name="resize-outline" size={14} color="#737373" />
+        <Text style={styles.statText}>{area}</Text>
+      </View>
+      <View style={styles.statItem}>
+        <Ionicons name="business-outline" size={14} color="#737373" />
+        <Text style={styles.statText}>{floor}</Text>
+      </View>
+    </View>
+  );
+}
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+function ListingCard({ listing }: { listing: Listing }) {
+  return (
+    <View style={styles.card}>
+      <View style={[styles.cardImage, { backgroundColor: listing.photoColor }]}>
+        <View style={styles.tag}>
+          <Text style={styles.tagText}>{listing.type}</Text>
+        </View>
+        <Pressable style={styles.favoriteCircle}>
+          <Ionicons name="heart-outline" size={18} color="#6C6C6C" />
+        </Pressable>
+      </View>
+
+      <View style={styles.cardBody}>
+        <Text style={styles.price}>{listing.price}</Text>
+        <Text style={styles.title}>{listing.title}</Text>
+        <Text style={styles.address}>{listing.address}</Text>
+        <StatRow beds={listing.beds} area={listing.area} floor={listing.floor} />
+        <Pressable style={styles.moreBtn}>
+          <Text style={styles.moreBtnText}>Подробнее</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+export default function UserCatalogScreen() {
+  const [dealType, setDealType] = useState<'buy' | 'rent'>('buy');
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.header}>
+        <Pressable style={styles.headerBtn}>
+          <Ionicons name="arrow-back" size={20} color="#3A3A3A" />
+        </Pressable>
+        <Text style={styles.headerTitle}>Каталог объектов</Text>
+        <Pressable style={styles.headerBtn}>
+          <Ionicons name="options-outline" size={20} color="#3A3A3A" />
+        </Pressable>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.segmented}>
+          <Pressable
+            style={[styles.segment, dealType === 'buy' && styles.segmentActive]}
+            onPress={() => setDealType('buy')}
+          >
+            <Text style={[styles.segmentText, dealType === 'buy' && styles.segmentTextActive]}>
+              Купить
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.segment, dealType === 'rent' && styles.segmentActive]}
+            onPress={() => setDealType('rent')}
+          >
+            <Text style={[styles.segmentText, dealType === 'rent' && styles.segmentTextActive]}>
+              Арендовать
+            </Text>
+          </Pressable>
+        </View>
+
+        <UserMapCard />
+
+        <Text style={styles.foundText}>Найдено {LISTINGS.length} объектов</Text>
+
+        {LISTINGS.map((listing) => (
+          <ListingCard key={listing.id} listing={listing} />
+        ))}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
+  header: {
+    height: 56,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E8E8',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  headerBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 18, lineHeight: 27, color: '#3A3A3A', fontWeight: '600' },
+  content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24, gap: 12 },
+  segmented: {
+    height: 40,
+    backgroundColor: '#F8F8F8',
+    borderRadius: 10,
+    padding: 4,
+    flexDirection: 'row',
+    gap: 4,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  segment: { flex: 1, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  segmentActive: { backgroundColor: '#70A0FF' },
+  segmentText: { fontSize: 14, lineHeight: 21, color: '#737373', fontWeight: '500' },
+  segmentTextActive: { color: '#FFFFFF' },
+  foundText: { fontSize: 14, lineHeight: 21, color: '#737373' },
+  card: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
   },
+  cardImage: { height: 110, padding: 8, flexDirection: 'row', justifyContent: 'space-between' },
+  tag: {
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 8,
+    height: 32,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  tagText: { fontSize: 12, lineHeight: 18, color: '#3A3A3A', fontWeight: '500' },
+  favoriteCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardBody: { padding: 12 },
+  price: { fontSize: 22, lineHeight: 27, color: '#3A3A3A', fontWeight: '600' },
+  title: { marginTop: 4, fontSize: 14, lineHeight: 21, color: '#3A3A3A' },
+  address: { marginTop: 4, fontSize: 13, lineHeight: 20, color: '#939393' },
+  statsRow: { marginTop: 8, flexDirection: 'row', gap: 12 },
+  statItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  statText: { fontSize: 13, lineHeight: 20, color: '#737373' },
+  moreBtn: {
+    marginTop: 12,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#F0F7FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moreBtnText: { fontSize: 14, lineHeight: 21, color: '#70A0FF', fontWeight: '500' },
 });

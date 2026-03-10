@@ -1,67 +1,80 @@
 # Real Estate Mobile
 
-Мобильное приложение платформы недвижимости на `Expo + React Native`.
+Mobile application for a real estate platform, built with `Expo` and `React Native`.
 
-## О проекте
+## Product Scope
 
-Приложение развивается как часть дипломного проекта для платформы недвижимости:
-- B2B2C-модель (пользователь, агентство, застройщик, администратор)
-- регистрация и авторизация по ролям
-- дальнейшие этапы: каталог, карта, карточка объекта, заявки, чат, dashboard
+The app follows a **B2B2C** model:
+- Users browse listings and submit requests.
+- Agencies and developers publish listings after verification.
+- Admin-side moderation controls listing quality and safety.
 
-## Текущий статус
+## Current Status
 
-Уже реализовано:
-- экран входа (`/login`)
-- экран восстановления пароля (`/forgot-password`)
-- многошаговая регистрация (`/register`)
-- базовые UI-компоненты (чекбокс, фоновые эффекты, формы)
+Implemented:
+- Login flow (`/login`)
+- Forgot password screen (`/forgot-password`)
+- Multi-step registration (`/register`)
+- Reusable UI components for form controls and checkboxes
 
-## Технологии
+Planned next:
+- Dashboard screens
+- Backend integration with Go API
+- Listing catalog, map, and request workflow
+
+## Tech Stack
 
 - `Expo`
 - `React Native`
 - `Expo Router`
 - `TypeScript`
-- `expo-document-picker`
 - `react-native-svg`
+- `expo-document-picker`
 
-## Быстрый старт
-
-1. Установить зависимости:
+## Quick Start
 
 ```bash
 npm install
-```
-
-2. Запустить проект:
-
-```bash
 npx expo start
 ```
 
-3. Для чистого старта Metro (рекомендуется при UI-изменениях):
+For cache reset during UI work:
 
 ```bash
 npx expo start -c
 ```
 
-## Структура
-
-- `app/` — экраны и роуты (Expo Router)
-- `components/` — переиспользуемые UI-компоненты
-- `assets/` — иконки и статические ресурсы
-
-## Команды
+## Scripts
 
 ```bash
-# Линтинг
 npm run lint
-
-# Запуск с очисткой кэша
-npx expo start -c
 ```
 
-## Репозиторий
+## Project Structure
 
-GitHub: [xwvwww/Real-Estate-Mobile](https://github.com/xwvwww/Real-Estate-Mobile)
+- `app/` — route-based screens
+- `components/` — reusable UI components
+- `assets/` — icons and static files
+- `.github/` — issue/PR templates and repository workflow files
+
+## Git Workflow
+
+- `main` — stable branch
+- `develop` — integration branch
+- `feature/*` — feature development
+- `fix/*` — bug fixes
+- `docs/*` — documentation updates
+
+Pull request flow:
+1. Create/update an issue.
+2. Work in a dedicated branch.
+3. Open PR into `develop`.
+4. Merge `develop` into `main` for release sync.
+
+## Repository
+
+- GitHub: [xwvwww/Real-Estate-Mobile](https://github.com/xwvwww/Real-Estate-Mobile)
+
+## License
+
+This project is licensed under the MIT License. See `LICENSE`.

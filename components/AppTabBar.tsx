@@ -16,7 +16,11 @@ const ROUTE_CONFIG: Record<
 <<<<<<< HEAD
   favorites: { label: 'Избранное', icon: 'heart-outline' },
 =======
+<<<<<<< HEAD
+  favorites: { label: 'Избранное', icon: 'heart-outline' },
+=======
   analytics: { label: 'Избранное', icon: 'heart-outline' },
+>>>>>>> origin/develop
 >>>>>>> origin/develop
   profile: { label: 'Профиль', icon: 'person-outline' },
 };

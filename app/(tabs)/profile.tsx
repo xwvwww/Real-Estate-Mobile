@@ -1,6 +1,13 @@
+import { useRouter } from 'expo-router';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function ProfileScreen() {
+  const router = useRouter();
+
+  const onLogout = () => {
+    router.replace('/login');
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
@@ -68,7 +75,7 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        <Pressable style={styles.logoutButton}>
+        <Pressable style={styles.logoutButton} onPress={onLogout}>
           <Text style={styles.logoutText}>Выйти из аккаунта</Text>
         </Pressable>
       </ScrollView>

@@ -21,13 +21,14 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="object/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="object-application" options={{ headerShown: false }} />
-        <Stack.Screen name="agency-dashboard" options={{ headerShown: false }} />
-        <Stack.Screen name="developer-dashboard" options={{ headerShown: false }} />
-        <Stack.Screen name="developer-projects" options={{ headerShown: false }} />
-        <Stack.Screen name="developer-objects" options={{ headerShown: false }} />
-        <Stack.Screen name="developer-requests" options={{ headerShown: false }} />
-        <Stack.Screen name="developer-analytics" options={{ headerShown: false }} />
-        <Stack.Screen name="developer-settings" options={{ headerShown: false }} />
+        <Stack.Screen name="agency-dashboard" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="developer-dashboard" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="developer-projects" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="developer-create-project" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="developer-objects" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="developer-requests" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="developer-analytics" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="developer-settings" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />

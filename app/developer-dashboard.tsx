@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
@@ -96,6 +97,12 @@ const PROJECTS: ProjectCard[] = [
 ];
 
 export default function DeveloperDashboardScreen() {
+  const router = useRouter();
+
+  const openProjects = () => {
+    router.replace('/developer-projects');
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
@@ -110,21 +117,24 @@ export default function DeveloperDashboardScreen() {
         overScrollMode="never">
         <View style={styles.metricsWrap}>
           {METRICS.map((metric) => (
-            <View key={metric.id} style={styles.metricCard}>
+            <Pressable
+              key={metric.id}
+              style={styles.metricCard}
+              onPress={metric.id === 'total' ? openProjects : undefined}>
               <View style={styles.metricTextWrap}>
                 <Text style={styles.metricValue}>{metric.value}</Text>
                 <Text style={styles.metricLabel}>{metric.label}</Text>
               </View>
-              <View style={[styles.metricIconWrap, { backgroundColor: metric.iconBg }]}> 
+              <View style={[styles.metricIconWrap, { backgroundColor: metric.iconBg }]}>
                 <Ionicons name={metric.icon} size={24} color={metric.iconColor} />
               </View>
-            </View>
+            </Pressable>
           ))}
         </View>
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Активные проекты</Text>
-          <Pressable>
+          <Pressable onPress={openProjects}>
             <Text style={styles.sectionAction}>Все</Text>
           </Pressable>
         </View>

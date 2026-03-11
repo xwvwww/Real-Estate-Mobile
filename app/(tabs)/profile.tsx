@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 import { useRouter } from 'expo-router';
-=======
->>>>>>> origin/develop
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function ProfileScreen() {
@@ -78,11 +75,7 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-<<<<<<< HEAD
         <Pressable style={styles.logoutButton} onPress={onLogout}>
-=======
-        <Pressable style={styles.logoutButton}>
->>>>>>> origin/develop
           <Text style={styles.logoutText}>Выйти из аккаунта</Text>
         </Pressable>
       </ScrollView>

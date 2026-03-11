@@ -14,23 +14,14 @@ const ROUTE_CONFIG: Record<
   index: { label: 'Главная', icon: 'home-outline' },
   projects: { label: 'Каталог', icon: 'search-outline' },
   favorites: { label: 'Избранное', icon: 'heart-outline' },
-<<<<<<< HEAD
-=======
-=======
-<<<<<<< HEAD
-  favorites: { label: 'Избранное', icon: 'heart-outline' },
-=======
-  analytics: { label: 'Избранное', icon: 'heart-outline' },
->>>>>>> origin/develop
->>>>>>> origin/develop
->>>>>>> origin/develop
   profile: { label: 'Профиль', icon: 'person-outline' },
 };
 
 export function AppTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+
   const visibleRoutes = state.routes.filter((route) => {
-    const options = descriptors[route.key]?.options;
+    const options = descriptors[route.key]?.options as { href?: string | null } | undefined;
     return options?.href !== null && ROUTE_CONFIG[route.name];
   });
 
@@ -65,8 +56,7 @@ export function AppTabBar({ state, descriptors, navigation }: BottomTabBarProps)
                 });
               }}
               style={styles.tabItem}
-              hitSlop={8}
-            >
+              hitSlop={8}>
               <Ionicons name={config.icon} size={24} color={tintColor} />
               <Text style={[styles.tabLabel, { color: tintColor }]} numberOfLines={1}>
                 {config.label}

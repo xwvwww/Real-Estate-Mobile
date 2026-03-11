@@ -104,13 +104,9 @@ export default function UserDashboardScreen() {
       transitionOpacity.setValue(0);
     });
   };
-<<<<<<< HEAD
-
   const openFavorites = () => {
     router.push('/(tabs)/favorites');
   };
-=======
->>>>>>> origin/develop
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -126,21 +122,13 @@ export default function UserDashboardScreen() {
         alwaysBounceVertical={false}
         overScrollMode="never">
         <View style={styles.metricsGrid}>
-<<<<<<< HEAD
           <Pressable style={[styles.metricCard, styles.metricCardHalf]} onPress={openFavorites}>
-=======
-          <View style={[styles.metricCard, styles.metricCardHalf]}>
->>>>>>> origin/develop
             <View style={styles.metricIconBg}>
               <Ionicons name="heart-outline" size={24} color="#70A0FF" />
             </View>
             <Text style={styles.metricValue}>12</Text>
             <Text style={styles.metricLabel}>Избранное</Text>
-<<<<<<< HEAD
           </Pressable>
-=======
-          </View>
->>>>>>> origin/develop
 
           <View style={[styles.metricCard, styles.metricCardHalf]}>
             <View style={styles.metricIconBg}>

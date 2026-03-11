@@ -31,15 +31,6 @@ export default function LoginScreen() {
       return;
     }
 
-    if (
-      (normalizedEmail === 'testmoderator@gmail.com' ||
-        normalizedEmail === 'testmoderator@gmai.com') &&
-      normalizedPassword === '12345'
-    ) {
-      router.replace('/moderator-dashboard');
-      return;
-    }
-
     if (normalizedEmail === 'testagency@gmail.com' && normalizedPassword === '123456') {
       router.replace('/agency-dashboard');
       return;
@@ -52,7 +43,7 @@ export default function LoginScreen() {
 
     Alert.alert(
       'Неверные данные',
-      'Тестовые аккаунты: testuser@gmail.com / 123456, testmoderator@gmail.com / 12345, testagency@gmail.com / 123456, testdeveloper@gmail.com / 123456'
+      'Тестовые аккаунты: testuser@gmail.com / 123456, testagency@gmail.com / 123456, testdeveloper@gmail.com / 123456'
     );
   };
 

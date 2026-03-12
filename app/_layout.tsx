@@ -22,6 +22,14 @@ export default function RootLayout() {
         <Stack.Screen name="object/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="object-application" options={{ headerShown: false }} />
         <Stack.Screen name="agency-dashboard" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-listings" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-requests" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-messages" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-settings" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-create-listing" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-create-listing-step2" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-create-listing-step3" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-create-listing-step4" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="developer-dashboard" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="developer-projects" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="developer-create-project" options={{ headerShown: false, animation: 'none' }} />

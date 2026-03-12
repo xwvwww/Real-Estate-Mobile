@@ -1,18 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AgencyBottomBar } from '@/components/AgencyBottomBar';
-
-type MetricItem = {
-  id: string;
-  value: string;
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  iconColor: string;
-  iconBg: string;
-};
 
 type ListingItem = {
   id: string;
@@ -25,49 +16,6 @@ type ListingItem = {
   image: number;
 };
 
-const METRICS: MetricItem[] = [
-  {
-    id: 'total',
-    value: '42',
-    label: 'Всего объявлений',
-    icon: 'document-text-outline',
-    iconColor: '#70A0FF',
-    iconBg: '#F0F7FF',
-  },
-  {
-    id: 'active',
-    value: '28',
-    label: 'Активные объявления',
-    icon: 'trending-up-outline',
-    iconColor: '#4CAF50',
-    iconBg: '#E8F5E9',
-  },
-  {
-    id: 'moderation',
-    value: '3',
-    label: 'На модерации',
-    icon: 'time-outline',
-    iconColor: '#F57C00',
-    iconBg: '#FFF3E0',
-  },
-  {
-    id: 'views',
-    value: '12 485',
-    label: 'Просмотры',
-    icon: 'eye-outline',
-    iconColor: '#70A0FF',
-    iconBg: '#F0F7FF',
-  },
-  {
-    id: 'requests',
-    value: '67',
-    label: 'Заявки',
-    icon: 'mail-open-outline',
-    iconColor: '#70A0FF',
-    iconBg: '#F0F7FF',
-  },
-];
-
 const LISTINGS: ListingItem[] = [
   {
     id: 'l1',
@@ -77,7 +25,7 @@ const LISTINGS: ListingItem[] = [
     status: 'Активно',
     statusColor: '#388E3C',
     statusBg: '#E8F5E9',
-    image: require('@/assets/images/ObjectOne.png'),
+    image: require('@/assets/images/AgencyListingOne.png'),
   },
   {
     id: 'l2',
@@ -87,7 +35,7 @@ const LISTINGS: ListingItem[] = [
     status: 'Активно',
     statusColor: '#388E3C',
     statusBg: '#E8F5E9',
-    image: require('@/assets/images/ObjectTwo.png'),
+    image: require('@/assets/images/AgencyListingTwo.png'),
   },
   {
     id: 'l3',
@@ -97,17 +45,41 @@ const LISTINGS: ListingItem[] = [
     status: 'На модерации',
     statusColor: '#F57C00',
     statusBg: '#FFF3E0',
-    image: require('@/assets/images/ObjectThree.png'),
+    image: require('@/assets/images/AgencyListingThree.png'),
+  },
+  {
+    id: 'l4',
+    title: 'Коттедж с участком',
+    type: 'Дом',
+    date: '8 февраля 2026',
+    status: 'Активно',
+    statusColor: '#388E3C',
+    statusBg: '#E8F5E9',
+    image: require('@/assets/images/AgencyListingFour.png'),
+  },
+  {
+    id: 'l5',
+    title: 'Офисное помещение',
+    type: 'Коммерческая',
+    date: '5 февраля 2026',
+    status: 'Неактивно',
+    statusColor: '#757575',
+    statusBg: '#F5F5F5',
+    image: require('@/assets/images/AgencyListingFive.png'),
   },
 ];
 
-export default function AgencyDashboardScreen() {
+export default function AgencyListingsScreen() {
   const router = useRouter();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
+        <Pressable style={styles.backButton} onPress={() => router.replace('/agency-dashboard')}>
+          <Ionicons name="chevron-back" size={20} color="#70A0FF" />
+        </Pressable>
         <Text style={styles.headerTitle}>Кабинет агентства</Text>
+        <View style={styles.rightSpacer} />
       </View>
 
       <ScrollView
@@ -115,32 +87,12 @@ export default function AgencyDashboardScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         bounces={false}
-        overScrollMode="never">
-        <View style={styles.metricList}>
-          {METRICS.map((metric) => (
-            <View key={metric.id} style={styles.metricCard}>
-              <View>
-                <Text style={styles.metricValue}>{metric.value}</Text>
-                <Text style={styles.metricLabel}>{metric.label}</Text>
-              </View>
-              <View style={[styles.metricIconWrap, { backgroundColor: metric.iconBg }]}>
-                <Ionicons name={metric.icon} size={24} color={metric.iconColor} />
-              </View>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Последние объявления</Text>
-          <Pressable onPress={() => router.replace('/agency-listings')}>
-            <Text style={styles.sectionAction}>Все</Text>
-          </Pressable>
-        </View>
-
+      overScrollMode="never">
         <View style={styles.listingList}>
           {LISTINGS.map((listing) => (
             <View key={listing.id} style={styles.listingCard}>
               <Image source={listing.image} contentFit="cover" style={styles.listingImage} />
+
               <View style={styles.listingBody}>
                 <Text style={styles.listingTitle}>{listing.title}</Text>
                 <Text style={styles.listingType}>{listing.type}</Text>
@@ -151,13 +103,21 @@ export default function AgencyDashboardScreen() {
                   </View>
                   <Text style={styles.listingDate}>{listing.date}</Text>
                 </View>
+
+                <Pressable style={styles.editButton}>
+                  <Text style={styles.editButtonText}>Редактировать</Text>
+                </Pressable>
               </View>
             </View>
           ))}
         </View>
       </ScrollView>
 
-      <AgencyBottomBar active="overview" />
+      <Pressable style={styles.fab} onPress={() => router.push('/agency-create-listing')}>
+        <Ionicons name="add" size={28} color="#FFFFFF" />
+      </Pressable>
+
+      <AgencyBottomBar active="listings" />
     </SafeAreaView>
   );
 }
@@ -172,15 +132,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E8E8E8',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     lineHeight: 27,
     fontWeight: '600',
     color: '#3A3A3A',
+  },
+  rightSpacer: {
+    width: 40,
+    height: 40,
   },
   scroll: {
     flex: 1,
@@ -189,65 +160,9 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 24,
-  },
-  metricList: {
-    gap: 12,
-  },
-  metricCard: {
-    backgroundColor: '#FFFFFF',
-    minHeight: 105,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    shadowColor: '#000000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  metricValue: {
-    fontSize: 32,
-    lineHeight: 48,
-    fontWeight: '600',
-    color: '#3A3A3A',
-  },
-  metricLabel: {
-    marginTop: 4,
-    fontSize: 14,
-    lineHeight: 21,
-    color: '#939393',
-  },
-  metricIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sectionHeader: {
-    marginTop: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    lineHeight: 27,
-    fontWeight: '600',
-    color: '#3A3A3A',
-  },
-  sectionAction: {
-    fontSize: 14,
-    lineHeight: 21,
-    fontWeight: '500',
-    color: '#70A0FF',
+    paddingBottom: 118,
   },
   listingList: {
-    marginTop: 12,
     gap: 12,
   },
   listingCard: {
@@ -272,7 +187,7 @@ const styles = StyleSheet.create({
   listingTitle: {
     fontSize: 16,
     lineHeight: 24,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#3A3A3A',
   },
   listingType: {
@@ -302,5 +217,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     color: '#939393',
+  },
+  editButton: {
+    marginTop: 12,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#F0F7FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editButtonText: {
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: '500',
+    color: '#70A0FF',
+  },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 80,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#70A0FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 4,
   },
 });

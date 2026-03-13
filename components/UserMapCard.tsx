@@ -1,76 +1,139 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-type Marker = {
+export type MapRegion = {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+};
+
+export type UserMapMarker = {
   id: string;
   lat: number;
   lng: number;
   price: string;
+  listingId?: string;
 };
 
-const MARKERS: Marker[] = [
-  { id: 'm1', lat: 43.242, lng: 76.944, price: '12.5M ₸' },
-  { id: 'm2', lat: 43.236, lng: 76.92, price: '18.9M ₸' },
-  { id: 'm3', lat: 43.225, lng: 76.957, price: '9.2M ₸' },
+type Props = {
+  markers?: UserMapMarker[];
+  selectedMarkerId?: string | null;
+  initialRegion?: MapRegion;
+  region?: MapRegion;
+  onRegionChange?: (region: MapRegion) => void;
+  onMarkerPress?: (marker: UserMapMarker) => void;
+  onListPress?: () => void;
+  onShowInAreaPress?: () => void;
+  listLabel?: string;
+  cityTitle?: string;
+  citySubtitle?: string;
+  showListButton?: boolean;
+  showScopeButton?: boolean;
+  height?: number;
+};
+
+const DEFAULT_MARKERS: UserMapMarker[] = [
+  { id: 'm1', lat: 43.242, lng: 76.944, price: '12.5M ₸', listingId: 'r1' },
+  { id: 'm2', lat: 43.236, lng: 76.92, price: '18.9M ₸', listingId: 'r2' },
+  { id: 'm3', lat: 43.225, lng: 76.957, price: '9.2M ₸', listingId: 'r3' },
 ];
 
-let MapLibreModule: any = null;
+const DEFAULT_REGION: MapRegion = {
+  latitude: 48.0196,
+  longitude: 66.9237,
+  latitudeDelta: 16,
+  longitudeDelta: 16,
+};
+
+let NativeMapModule: any = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  MapLibreModule = require('react-native-maps');
+  NativeMapModule = require('react-native-maps');
 } catch {
-  MapLibreModule = null;
+  NativeMapModule = null;
 }
 
-export default function UserMapCard() {
-  const MapView = MapLibreModule?.default ?? MapLibreModule?.MapView;
-  const Marker = MapLibreModule?.Marker;
-  const UrlTile = MapLibreModule?.UrlTile;
+export default function UserMapCard({
+  markers = DEFAULT_MARKERS,
+  selectedMarkerId,
+  initialRegion = DEFAULT_REGION,
+  region,
+  onRegionChange,
+  onMarkerPress,
+  onListPress,
+  onShowInAreaPress,
+  listLabel = 'Список',
+  cityTitle = 'Казахстан',
+  citySubtitle = 'Карта объектов по стране',
+  showListButton = true,
+  showScopeButton = true,
+  height = 332,
+}: Props) {
+  const MapView = NativeMapModule?.default ?? NativeMapModule?.MapView;
+  const Marker = NativeMapModule?.Marker;
+  const UrlTile = NativeMapModule?.UrlTile;
   const hasNativeMap = Boolean(MapView && Marker && UrlTile);
-  const [region, setRegion] = useState({
-    latitude: 43.238,
-    longitude: 76.944,
-    latitudeDelta: 0.18,
-    longitudeDelta: 0.18,
-  });
+
+  const [localRegion, setLocalRegion] = useState<MapRegion>(initialRegion);
+  const activeRegion = region ?? localRegion;
+
+  const activeMarkerId = selectedMarkerId ?? null;
+
+  const markerMap = useMemo(
+    () => Object.fromEntries(markers.map((marker) => [marker.id, marker])),
+    [markers]
+  );
+
+  const updateRegion = (nextRegion: MapRegion) => {
+    if (!region) {
+      setLocalRegion(nextRegion);
+    }
+    onRegionChange?.(nextRegion);
+  };
 
   const onZoom = (dir: 'in' | 'out') => {
     const nextDelta =
       dir === 'in'
-        ? Math.max(region.latitudeDelta * 0.7, 0.01)
-        : Math.min(region.latitudeDelta * 1.35, 0.7);
+        ? Math.max(activeRegion.latitudeDelta * 0.72, 0.01)
+        : Math.min(activeRegion.latitudeDelta * 1.34, 0.8);
 
-    setRegion((prev) => ({
-      ...prev,
+    updateRegion({
+      ...activeRegion,
       latitudeDelta: nextDelta,
       longitudeDelta: nextDelta,
-    }));
+    });
   };
 
   return (
-    <View style={styles.mapCard}>
+    <View style={[styles.mapCard, { height }]}> 
       {hasNativeMap ? (
-        <>
-          <MapView
-            style={StyleSheet.absoluteFill}
-            region={region}
-            onRegionChangeComplete={setRegion}
-          >
-            <UrlTile urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maximumZ={19} />
+        <MapView
+          style={StyleSheet.absoluteFill}
+          region={activeRegion}
+          onRegionChangeComplete={updateRegion}
+          showsCompass={false}
+          showsPointsOfInterest={false}
+          showsBuildings={false}
+          rotateEnabled={false}
+          pitchEnabled={false}>
+          <UrlTile urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maximumZ={19} />
 
-            {MARKERS.map((marker) => (
+          {markers.map((marker) => {
+            const isActive = activeMarkerId === marker.id;
+            return (
               <Marker
                 key={marker.id}
                 coordinate={{ latitude: marker.lat, longitude: marker.lng }}
-              >
-                <View style={styles.marker}>
-                  <Text style={styles.markerText}>{marker.price}</Text>
+                onPress={() => onMarkerPress?.(marker)}>
+                <View style={[styles.marker, isActive && styles.markerActive]}>
+                  <Text style={[styles.markerText, isActive && styles.markerTextActive]}>{marker.price}</Text>
                 </View>
               </Marker>
-            ))}
-          </MapView>
-        </>
+            );
+          })}
+        </MapView>
       ) : (
         <View style={styles.fallbackMap}>
           <Text style={styles.fallbackTitle}>Map package not installed yet</Text>
@@ -80,15 +143,17 @@ export default function UserMapCard() {
 
       <View style={styles.mapTopRow}>
         <View style={styles.cityBadge}>
-          <Text style={styles.cityTitle}>Алматы</Text>
-          <Text style={styles.citySubtitle}>Карта объектов</Text>
+          <Text style={styles.cityTitle}>{cityTitle}</Text>
+          <Text style={styles.citySubtitle}>{citySubtitle}</Text>
         </View>
       </View>
 
-      <Pressable style={styles.listButton}>
-        <Ionicons name="list-outline" size={16} color="#3A3A3A" />
-        <Text style={styles.listButtonText}>Список</Text>
-      </Pressable>
+      {showListButton ? (
+        <Pressable style={styles.listButton} onPress={onListPress}>
+          <Ionicons name="list-outline" size={16} color="#3A3A3A" />
+          <Text style={styles.listButtonText}>{listLabel}</Text>
+        </Pressable>
+      ) : null}
 
       <View style={styles.mapActions}>
         <Pressable style={styles.mapIconBtn} onPress={() => onZoom('in')}>
@@ -99,16 +164,23 @@ export default function UserMapCard() {
         </Pressable>
       </View>
 
-      <Pressable style={styles.mapScopeButton}>
-        <Text style={styles.mapScopeText}>Показать объекты в этой области</Text>
-      </Pressable>
+      {showScopeButton ? (
+        <Pressable style={styles.mapScopeButton} onPress={onShowInAreaPress}>
+          <Text style={styles.mapScopeText}>Показать объекты в этой области</Text>
+        </Pressable>
+      ) : null}
+
+      {activeMarkerId && markerMap[activeMarkerId] ? (
+        <View style={styles.selectedHint}>
+          <Text style={styles.selectedHintText}>Выбрано: {markerMap[activeMarkerId].price}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   mapCard: {
-    height: 332,
     borderRadius: 10,
     backgroundColor: '#E5E7EB',
     padding: 16,
@@ -182,12 +254,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
+  markerActive: {
+    borderColor: '#70A0FF',
+    backgroundColor: '#F0F7FF',
   },
   markerText: {
     fontSize: 11,
     lineHeight: 16,
     color: '#3A3A3A',
     fontWeight: '600',
+  },
+  markerTextActive: {
+    color: '#2A7FE3',
   },
   listButton: {
     position: 'absolute',
@@ -217,11 +298,27 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   mapScopeText: {
-    width: 124,
+    width: 156,
     textAlign: 'center',
     fontSize: 13,
     lineHeight: 20,
     color: '#70A0FF',
+    fontWeight: '500',
+  },
+  selectedHint: {
+    position: 'absolute',
+    left: 16,
+    right: 64,
+    bottom: 62,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  selectedHintText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#3A3A3A',
     fontWeight: '500',
   },
 });

@@ -3,15 +3,8 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useRef } from 'react';
 import { Animated, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
-
-type RecentItem = {
-  id: string;
-  title: string;
-  city: string;
-  price: string;
-  seenAgo: string;
-  image: any;
-};
+import { USER_LISTINGS } from '@/constants/userListings';
+import { useFavoriteIds } from '@/stores/favoritesStore';
 
 type RequestItem = {
   id: string;
@@ -22,33 +15,6 @@ type RequestItem = {
   statusColor: string;
   statusBg: string;
 };
-
-const RECENT_ITEMS: RecentItem[] = [
-  {
-    id: 'r1',
-    title: '2-комнатная квартира',
-    city: 'Алматы',
-    price: '12 500 000 ₸',
-    seenAgo: '2 дня назад',
-    image: require('@/assets/images/ObjectOne.png'),
-  },
-  {
-    id: 'r2',
-    title: '3-комнатная квартира',
-    city: 'Алматы',
-    price: '18 900 000 ₸',
-    seenAgo: '3 дня назад',
-    image: require('@/assets/images/ObjectTwo.png'),
-  },
-  {
-    id: 'r3',
-    title: 'Студия в новостройке',
-    city: 'Алматы',
-    price: '9 200 000 ₸',
-    seenAgo: '5 дней назад',
-    image: require('@/assets/images/ObjectThree.png'),
-  },
-];
 
 const REQUEST_ITEMS: RequestItem[] = [
   {
@@ -80,8 +46,11 @@ const REQUEST_ITEMS: RequestItem[] = [
   },
 ];
 
+const RECENT_ITEMS = USER_LISTINGS.slice(0, 3);
+
 export default function UserDashboardScreen() {
   const router = useRouter();
+  const favoriteIds = useFavoriteIds();
   const catalogScale = useRef(new Animated.Value(1)).current;
   const transitionOpacity = useRef(new Animated.Value(0)).current;
 
@@ -99,13 +68,9 @@ export default function UserDashboardScreen() {
       }),
     ]).start(() => {
       router.push('/(tabs)/projects');
-      // Reset animation state after route change so returning to this tab looks clean.
       catalogScale.setValue(1);
       transitionOpacity.setValue(0);
     });
-  };
-  const openFavorites = () => {
-    router.push('/(tabs)/favorites');
   };
 
   return (
@@ -122,29 +87,35 @@ export default function UserDashboardScreen() {
         alwaysBounceVertical={false}
         overScrollMode="never">
         <View style={styles.metricsGrid}>
-          <Pressable style={[styles.metricCard, styles.metricCardHalf]} onPress={openFavorites}>
+          <Pressable
+            style={[styles.metricCard, styles.metricCardHalf]}
+            onPress={() => router.push('/(tabs)/favorites')}>
             <View style={styles.metricIconBg}>
               <Ionicons name="heart-outline" size={24} color="#70A0FF" />
             </View>
-            <Text style={styles.metricValue}>12</Text>
+            <Text style={styles.metricValue}>{favoriteIds.length}</Text>
             <Text style={styles.metricLabel}>Избранное</Text>
           </Pressable>
 
-          <View style={[styles.metricCard, styles.metricCardHalf]}>
+          <Pressable
+            style={[styles.metricCard, styles.metricCardHalf]}
+            onPress={() => router.push('/(tabs)/requests')}>
             <View style={styles.metricIconBg}>
               <Ionicons name="document-text-outline" size={24} color="#70A0FF" />
             </View>
             <Text style={styles.metricValue}>5</Text>
             <Text style={styles.metricLabel}>Активные заявки</Text>
-          </View>
+          </Pressable>
 
-          <View style={[styles.metricCard, styles.metricCardHalf]}>
+          <Pressable
+            style={[styles.metricCard, styles.metricCardHalf]}
+            onPress={() => router.push('/(tabs)/messages')}>
             <View style={styles.metricIconBg}>
               <Ionicons name="chatbubble-outline" size={24} color="#70A0FF" />
             </View>
             <Text style={styles.metricValue}>3</Text>
             <Text style={styles.metricLabel}>Сообщения</Text>
-          </View>
+          </Pressable>
 
           <Animated.View style={{ width: '48.1%', transform: [{ scale: catalogScale }] }}>
             <Pressable style={[styles.metricCard, styles.catalogCard, styles.catalogCardFill]} onPress={openCatalog}>
@@ -161,8 +132,11 @@ export default function UserDashboardScreen() {
           </Pressable>
         </View>
 
-        {RECENT_ITEMS.map((item) => (
-          <Pressable key={item.id} style={styles.recentCard} onPress={() => router.push({ pathname: '/object/[id]', params: { id: item.id } })}>
+        {RECENT_ITEMS.map((item, index) => (
+          <Pressable
+            key={item.id}
+            style={styles.recentCard}
+            onPress={() => router.push({ pathname: '/object/[id]', params: { id: item.id } })}>
             <Image source={item.image} style={styles.recentImage} contentFit="cover" />
             <View style={styles.recentBody}>
               <Text style={styles.recentTitle}>{item.title}</Text>
@@ -170,7 +144,7 @@ export default function UserDashboardScreen() {
               <Text style={styles.recentPrice}>{item.price}</Text>
               <View style={styles.recentSeenRow}>
                 <Ionicons name="time-outline" size={14} color="#8F8F8F" />
-                <Text style={styles.recentSeenText}>{item.seenAgo}</Text>
+                <Text style={styles.recentSeenText}>{index + 2} дня назад</Text>
               </View>
             </View>
           </Pressable>
@@ -178,13 +152,13 @@ export default function UserDashboardScreen() {
 
         <View style={[styles.sectionHeader, styles.requestsHeader]}>
           <Text style={styles.sectionTitle}>Последние заявки</Text>
-          <Pressable>
+          <Pressable onPress={() => router.push('/(tabs)/requests')}>
             <Text style={styles.sectionAction}>Все</Text>
           </Pressable>
         </View>
 
         {REQUEST_ITEMS.map((item) => (
-          <Pressable key={item.id} style={styles.requestCard}>
+          <Pressable key={item.id} style={styles.requestCard} onPress={() => router.push('/(tabs)/requests')}>
             <View style={styles.requestTop}>
               <Text style={styles.requestTitle}>{item.title}</Text>
               <Ionicons name="chevron-forward" size={18} color="#8C8C8C" />

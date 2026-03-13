@@ -19,6 +19,13 @@ try {
   MapModule = null;
 }
 
+const CITY_OPTIONS = [
+  { label: 'Алматы', latitude: 43.238949, longitude: 76.889709 },
+  { label: 'Астана', latitude: 51.128207, longitude: 71.43042 },
+  { label: 'Шымкент', latitude: 42.315514, longitude: 69.586907 },
+  { label: 'Караганда', latitude: 49.802815, longitude: 73.102356 },
+] as const;
+
 export default function AgencyCreateListingStep2Screen() {
   const router = useRouter();
   const MapView = MapModule?.default ?? MapModule?.MapView;
@@ -27,6 +34,7 @@ export default function AgencyCreateListingStep2Screen() {
   const hasNativeMap = Boolean(MapView && Marker && UrlTile);
 
   const [city, setCity] = useState('');
+  const [cityOpen, setCityOpen] = useState(false);
   const [address, setAddress] = useState('');
   const [region, setRegion] = useState<MapRegion>({
     latitude: 43.238,
@@ -49,6 +57,21 @@ export default function AgencyCreateListingStep2Screen() {
       latitudeDelta: nextDelta,
       longitudeDelta: nextDelta,
     }));
+  };
+
+  const onSelectCity = (nextCity: (typeof CITY_OPTIONS)[number]) => {
+    setCity(nextCity.label);
+    setCityOpen(false);
+    setRegion({
+      latitude: nextCity.latitude,
+      longitude: nextCity.longitude,
+      latitudeDelta: 0.08,
+      longitudeDelta: 0.08,
+    });
+    setPickedLocation({
+      latitude: nextCity.latitude,
+      longitude: nextCity.longitude,
+    });
   };
 
   return (
@@ -87,13 +110,30 @@ export default function AgencyCreateListingStep2Screen() {
 
           <View style={styles.fieldWrap}>
             <Text style={styles.fieldLabel}>Город*</Text>
-            <TextInput
-              style={styles.input}
-              value={city}
-              onChangeText={setCity}
-              placeholder="Например: Алматы"
-              placeholderTextColor="#939393"
-            />
+            <View style={styles.dropdownWrap}>
+              <Pressable style={styles.dropdown} onPress={() => setCityOpen((prev) => !prev)}>
+                <Text style={[styles.dropdownText, !city && styles.dropdownPlaceholder]}>
+                  {city || 'Выберите город'}
+                </Text>
+                <Ionicons name={cityOpen ? 'chevron-up' : 'chevron-down'} size={18} color="#939393" />
+              </Pressable>
+
+              {cityOpen ? (
+                <View style={styles.dropdownMenu}>
+                  {CITY_OPTIONS.map((option, index) => (
+                    <Pressable
+                      key={option.label}
+                      style={[styles.dropdownItem, index === CITY_OPTIONS.length - 1 && styles.dropdownItemLast]}
+                      onPress={() => onSelectCity(option)}>
+                      <Text style={[styles.dropdownItemText, city === option.label && styles.dropdownItemTextActive]}>
+                        {option.label}
+                      </Text>
+                      {city === option.label ? <Ionicons name="checkmark" size={16} color="#70A0FF" /> : null}
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+            </View>
           </View>
 
           <View style={styles.fieldWrap}>
@@ -131,6 +171,11 @@ export default function AgencyCreateListingStep2Screen() {
                 <Pressable style={styles.mapControlButton} onPress={() => onZoom('out')}>
                   <Text style={styles.mapControlText}>−</Text>
                 </Pressable>
+              </View>
+
+              <View style={styles.mapBadge}>
+                <Text style={styles.mapBadgeTitle}>{city || 'Казахстан'}</Text>
+                <Text style={styles.mapBadgeSubtitle}>Выберите точку на карте</Text>
               </View>
             </View>
           </View>
@@ -242,6 +287,64 @@ const styles = StyleSheet.create({
     color: '#3A3A3A',
     fontWeight: '500',
   },
+  dropdownWrap: {
+    position: 'relative',
+    zIndex: 10,
+  },
+  dropdown: {
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: '#F8F8F8',
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dropdownText: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#3A3A3A',
+  },
+  dropdownPlaceholder: {
+    color: '#939393',
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 52,
+    left: 0,
+    right: 0,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    overflow: 'hidden',
+    shadowColor: '#101828',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 8,
+  },
+  dropdownItem: {
+    minHeight: 44,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  dropdownItemLast: {
+    borderBottomWidth: 0,
+  },
+  dropdownItemText: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: '#3A3A3A',
+  },
+  dropdownItemTextActive: {
+    color: '#70A0FF',
+    fontWeight: '600',
+  },
   input: {
     height: 48,
     borderRadius: 10,
@@ -255,7 +358,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     height: 300,
     borderRadius: 14,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: '#EEF1F5',
     overflow: 'hidden',
     justifyContent: 'center',
   },
@@ -273,6 +376,26 @@ const styles = StyleSheet.create({
     right: 10,
     top: 10,
     gap: 8,
+  },
+  mapBadge: {
+    position: 'absolute',
+    left: 10,
+    top: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  mapBadgeTitle: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#3A3A3A',
+    fontWeight: '500',
+  },
+  mapBadgeSubtitle: {
+    fontSize: 10,
+    lineHeight: 15,
+    color: '#939393',
   },
   mapControlButton: {
     width: 36,

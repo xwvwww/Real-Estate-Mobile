@@ -40,7 +40,7 @@ export default function AgencySettingsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Кабинет агентства</Text>
+        <Text style={styles.headerTitle}>Настройки</Text>
       </View>
 
       <ScrollView
@@ -289,9 +289,9 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     marginTop: 12,
-    height: 48,
-    borderRadius: 10,
-    backgroundColor: '#FFEBEE',
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },

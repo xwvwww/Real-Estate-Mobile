@@ -1,43 +1,17 @@
+import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AgencyBottomBar } from '@/components/AgencyBottomBar';
-
-type MessageItem = {
-  id: string;
-  avatarLetter: string;
-  name: string;
-  object: string;
-  preview: string;
-  time: string;
-  unreadCount?: number;
-};
-
-const MESSAGES: MessageItem[] = [
-  {
-    id: '1',
-    avatarLetter: 'И',
-    name: 'Иван Иванов',
-    object: '2-комнатная квартира',
-    preview: 'Когда можно посмотреть квартиру?',
-    time: '14:32',
-    unreadCount: 2,
-  },
-  {
-    id: '2',
-    avatarLetter: 'М',
-    name: 'Мария Петрова',
-    object: '3-комнатная квартира',
-    preview: 'Спасибо за информацию!',
-    time: '12:15',
-  },
-];
+import { AGENCY_MESSAGES } from '@/constants/agencyData';
 
 export default function AgencyMessagesScreen() {
+  const router = useRouter();
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Кабинет агентства</Text>
+        <Text style={styles.headerTitle}>Сообщения</Text>
       </View>
 
       <ScrollView
@@ -46,8 +20,8 @@ export default function AgencyMessagesScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never">
-        {MESSAGES.map((item) => (
-          <Pressable key={item.id} style={styles.card}>
+        {AGENCY_MESSAGES.map((item) => (
+          <Pressable key={item.id} style={styles.card} onPress={() => router.push(`/agency-message/${item.id}` as any)}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{item.avatarLetter}</Text>
             </View>

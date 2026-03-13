@@ -1,65 +1,18 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AgencyBottomBar } from '@/components/AgencyBottomBar';
-
-type RequestStatus = {
-  label: string;
-  textColor: string;
-  bgColor: string;
-};
-
-type AgencyRequest = {
-  id: string;
-  objectTitle: string;
-  applicantName: string;
-  summary: string;
-  status: RequestStatus;
-  actions?: boolean;
-};
-
-const REQUESTS: AgencyRequest[] = [
-  {
-    id: '1',
-    objectTitle: '2-комнатная квартира в центре',
-    applicantName: 'Иван Иванов',
-    summary: 'Семья из 3 человек, доход подтвержден',
-    status: {
-      label: 'Новая',
-      textColor: '#1976D2',
-      bgColor: '#E3F2FD',
-    },
-    actions: true,
-  },
-  {
-    id: '2',
-    objectTitle: '3-комнатная квартира с ремонтом',
-    applicantName: 'Мария Петрова',
-    summary: 'Семья из 2 человек, постоянный доход',
-    status: {
-      label: 'Рассматривается',
-      textColor: '#F57C00',
-      bgColor: '#FFF3E0',
-    },
-  },
-  {
-    id: '3',
-    objectTitle: 'Студия в новостройке',
-    applicantName: 'Алексей Сидоров',
-    summary: 'Один человек, офисная работа',
-    status: {
-      label: 'Одобрена',
-      textColor: '#388E3C',
-      bgColor: '#E8F5E9',
-    },
-  },
-];
+import { AGENCY_REQUESTS } from '@/constants/agencyData';
 
 export default function AgencyRequestsScreen() {
+  const router = useRouter();
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Кабинет агентства</Text>
+        <Text style={styles.headerTitle}>Заявки</Text>
       </View>
 
       <ScrollView
@@ -68,30 +21,19 @@ export default function AgencyRequestsScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never">
-        {REQUESTS.map((item) => (
-          <View key={item.id} style={[styles.card, item.actions ? styles.cardLarge : styles.cardCompact]}>
+        {AGENCY_REQUESTS.map((item) => (
+          <Pressable key={item.id} style={styles.card} onPress={() => router.push(`/agency-request-view/${item.id}` as any)}>
             <Text style={styles.objectTitle}>{item.objectTitle}</Text>
             <Text style={styles.applicantName}>{item.applicantName}</Text>
             <Text style={styles.summary}>{item.summary}</Text>
 
             <View style={styles.bottomRow}>
-              <View style={[styles.statusPill, { backgroundColor: item.status.bgColor }]}> 
+              <View style={[styles.statusPill, { backgroundColor: item.status.bgColor }]}>
                 <Text style={[styles.statusText, { color: item.status.textColor }]}>{item.status.label}</Text>
               </View>
+              <Ionicons name="chevron-forward" size={18} color="#B6B6B6" />
             </View>
-
-            {item.actions ? (
-              <View style={styles.actionsRow}>
-                <Pressable style={styles.acceptButton}>
-                  <Text style={styles.acceptButtonText}>Принять</Text>
-                </Pressable>
-
-                <Pressable style={styles.rejectButton}>
-                  <Text style={styles.rejectButtonText}>Отклонить</Text>
-                </Pressable>
-              </View>
-            ) : null}
-          </View>
+          </Pressable>
         ))}
       </ScrollView>
 
@@ -142,12 +84,6 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  cardLarge: {
-    minHeight: 194,
-  },
-  cardCompact: {
-    minHeight: 155,
-  },
   objectTitle: {
     fontSize: 15,
     lineHeight: 23,
@@ -169,7 +105,8 @@ const styles = StyleSheet.create({
   bottomRow: {
     marginTop: 14,
     flexDirection: 'row',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   statusPill: {
     height: 26,
@@ -181,39 +118,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     lineHeight: 18,
-    fontWeight: '500',
-  },
-  actionsRow: {
-    marginTop: 12,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  acceptButton: {
-    flex: 1,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: '#70A0FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  acceptButtonText: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: '#FFFFFF',
-    fontWeight: '500',
-  },
-  rejectButton: {
-    flex: 1,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: '#FFEBEE',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rejectButtonText: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: '#D32F2F',
     fontWeight: '500',
   },
 });

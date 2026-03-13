@@ -4,70 +4,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AgencyBottomBar } from '@/components/AgencyBottomBar';
-
-type ListingItem = {
-  id: string;
-  title: string;
-  type: string;
-  date: string;
-  status: string;
-  statusColor: string;
-  statusBg: string;
-  image: number;
-};
-
-const LISTINGS: ListingItem[] = [
-  {
-    id: 'l1',
-    title: '2-комнатная квартира в центре',
-    type: 'Квартира',
-    date: '15 февраля 2026',
-    status: 'Активно',
-    statusColor: '#388E3C',
-    statusBg: '#E8F5E9',
-    image: require('@/assets/images/AgencyListingOne.png'),
-  },
-  {
-    id: 'l2',
-    title: '3-комнатная квартира с ремонтом',
-    type: 'Квартира',
-    date: '12 февраля 2026',
-    status: 'Активно',
-    statusColor: '#388E3C',
-    statusBg: '#E8F5E9',
-    image: require('@/assets/images/AgencyListingTwo.png'),
-  },
-  {
-    id: 'l3',
-    title: 'Студия в новостройке',
-    type: 'Квартира',
-    date: '10 февраля 2026',
-    status: 'На модерации',
-    statusColor: '#F57C00',
-    statusBg: '#FFF3E0',
-    image: require('@/assets/images/AgencyListingThree.png'),
-  },
-  {
-    id: 'l4',
-    title: 'Коттедж с участком',
-    type: 'Дом',
-    date: '8 февраля 2026',
-    status: 'Активно',
-    statusColor: '#388E3C',
-    statusBg: '#E8F5E9',
-    image: require('@/assets/images/AgencyListingFour.png'),
-  },
-  {
-    id: 'l5',
-    title: 'Офисное помещение',
-    type: 'Коммерческая',
-    date: '5 февраля 2026',
-    status: 'Неактивно',
-    statusColor: '#757575',
-    statusBg: '#F5F5F5',
-    image: require('@/assets/images/AgencyListingFive.png'),
-  },
-];
+import { AGENCY_LISTINGS } from '@/constants/agencyData';
 
 export default function AgencyListingsScreen() {
   const router = useRouter();
@@ -78,7 +15,7 @@ export default function AgencyListingsScreen() {
         <Pressable style={styles.backButton} onPress={() => router.replace('/agency-dashboard')}>
           <Ionicons name="chevron-back" size={20} color="#70A0FF" />
         </Pressable>
-        <Text style={styles.headerTitle}>Кабинет агентства</Text>
+        <Text style={styles.headerTitle}>Объявления</Text>
         <View style={styles.rightSpacer} />
       </View>
 
@@ -89,8 +26,8 @@ export default function AgencyListingsScreen() {
         bounces={false}
       overScrollMode="never">
         <View style={styles.listingList}>
-          {LISTINGS.map((listing) => (
-            <View key={listing.id} style={styles.listingCard}>
+          {AGENCY_LISTINGS.map((listing) => (
+            <Pressable key={listing.id} style={styles.listingCard} onPress={() => router.push(`/agency-listing-view/${listing.id}` as any)}>
               <Image source={listing.image} contentFit="cover" style={styles.listingImage} />
 
               <View style={styles.listingBody}>
@@ -104,11 +41,16 @@ export default function AgencyListingsScreen() {
                   <Text style={styles.listingDate}>{listing.date}</Text>
                 </View>
 
-                <Pressable style={styles.editButton}>
+                <Pressable
+                  style={styles.editButton}
+                  onPress={(event) => {
+                    event.stopPropagation();
+                    router.push(`/agency-edit-listing/${listing.id}` as any);
+                  }}>
                   <Text style={styles.editButtonText}>Редактировать</Text>
                 </Pressable>
               </View>
-            </View>
+            </Pressable>
           ))}
         </View>
       </ScrollView>

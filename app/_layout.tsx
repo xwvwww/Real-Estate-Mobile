@@ -29,6 +29,10 @@ export default function RootLayout() {
         <Stack.Screen name="agency-requests" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="agency-messages" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="agency-settings" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-listing-view/[id]" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-edit-listing/[id]" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-request-view/[id]" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-message/[id]" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="agency-create-listing" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="agency-create-listing-step2" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="agency-create-listing-step3" options={{ headerShown: false, animation: 'none' }} />

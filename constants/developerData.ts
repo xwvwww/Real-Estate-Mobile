@@ -9,6 +9,10 @@ export type DeveloperProject = {
   createdAt?: string;
   location: string;
   description: string;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  };
 };
 
 export type DeveloperObject = {
@@ -26,6 +30,11 @@ export type DeveloperObject = {
   rooms: string;
   area: string;
   floor: string;
+  location: string;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  };
 };
 
 export type DeveloperRequest = {
@@ -39,6 +48,11 @@ export type DeveloperRequest = {
   phone: string;
   income: string;
   project: string;
+  location: string;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  };
 };
 
 export const DEVELOPER_PROJECTS: DeveloperProject[] = [
@@ -52,6 +66,10 @@ export const DEVELOPER_PROJECTS: DeveloperProject[] = [
     views: '8 453',
     location: 'Астана, район Нура',
     description: 'Современный жилой комплекс с квартирами комфорт-класса и развитой инфраструктурой.',
+    coordinates: {
+      latitude: 51.1288,
+      longitude: 71.4307,
+    },
   },
   {
     id: 'green-valley',
@@ -63,6 +81,10 @@ export const DEVELOPER_PROJECTS: DeveloperProject[] = [
     views: '6 234',
     location: 'Алматы, Бостандыкский район',
     description: 'Проект с акцентом на зеленую территорию, семейные планировки и закрытый двор.',
+    coordinates: {
+      latitude: 43.222,
+      longitude: 76.9136,
+    },
   },
   {
     id: 'smart-city',
@@ -74,6 +96,10 @@ export const DEVELOPER_PROJECTS: DeveloperProject[] = [
     views: '3 890',
     location: 'Шымкент, Аль-Фарабийский район',
     description: 'Новый квартал с цифровыми сервисами, подземным паркингом и коммерческими помещениями.',
+    coordinates: {
+      latitude: 42.3182,
+      longitude: 69.5901,
+    },
   },
   {
     id: 'premium-plaza',
@@ -86,6 +112,10 @@ export const DEVELOPER_PROJECTS: DeveloperProject[] = [
     createdAt: 'Создан: 1 января 2026',
     location: 'Алматы, Медеуский район',
     description: 'Премиальный проект с панорамными окнами и видовыми квартирами.',
+    coordinates: {
+      latitude: 43.2389,
+      longitude: 76.9575,
+    },
   },
   {
     id: 'city-park',
@@ -98,6 +128,10 @@ export const DEVELOPER_PROJECTS: DeveloperProject[] = [
     createdAt: 'Создан: 15 декабря 2025',
     location: 'Караганда, Юго-Восток',
     description: 'Комплекс рядом с парковой зоной, ориентированный на молодых специалистов и семьи.',
+    coordinates: {
+      latitude: 49.7873,
+      longitude: 73.1431,
+    },
   },
 ];
 
@@ -113,6 +147,11 @@ export const DEVELOPER_OBJECTS: DeveloperObject[] = [
     rooms: '2 комнаты',
     area: '65 м²',
     floor: '7/12 этаж',
+    location: 'Астана, район Нура',
+    coordinates: {
+      latitude: 51.1288,
+      longitude: 71.4307,
+    },
   },
   {
     id: 'o2',
@@ -125,6 +164,11 @@ export const DEVELOPER_OBJECTS: DeveloperObject[] = [
     rooms: '3 комнаты',
     area: '95 м²',
     floor: '9/14 этаж',
+    location: 'Алматы, Бостандыкский район',
+    coordinates: {
+      latitude: 43.222,
+      longitude: 76.9136,
+    },
   },
   {
     id: 'o3',
@@ -137,6 +181,11 @@ export const DEVELOPER_OBJECTS: DeveloperObject[] = [
     rooms: 'Студия',
     area: '35 м²',
     floor: '4/10 этаж',
+    location: 'Шымкент, Аль-Фарабийский район',
+    coordinates: {
+      latitude: 42.3182,
+      longitude: 69.5901,
+    },
   },
 ];
 
@@ -152,6 +201,11 @@ export const DEVELOPER_REQUESTS: DeveloperRequest[] = [
     phone: '+7 701 445 22 18',
     income: 'Подтвержденный доход',
     project: 'ЖК "Comfort Town"',
+    location: 'Астана, район Нура',
+    coordinates: {
+      latitude: 51.1288,
+      longitude: 71.4307,
+    },
   },
   {
     id: 'r2',
@@ -164,6 +218,11 @@ export const DEVELOPER_REQUESTS: DeveloperRequest[] = [
     phone: '+7 777 109 88 43',
     income: 'Постоянная работа',
     project: 'ЖК "Green Valley"',
+    location: 'Алматы, Бостандыкский район',
+    coordinates: {
+      latitude: 43.222,
+      longitude: 76.9136,
+    },
   },
 ];
 

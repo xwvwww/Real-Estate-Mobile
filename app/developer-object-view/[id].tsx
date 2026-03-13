@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { getDeveloperObjectById } from '@/constants/developerData';
+import UserMapCard from '@/components/UserMapCard';
 
 export default function DeveloperObjectViewScreen() {
   const router = useRouter();
@@ -36,6 +37,35 @@ export default function DeveloperObjectViewScreen() {
               <InfoRow label="Этаж" value={object.floor} />
               <InfoRow label="Просмотры" value={object.views} />
               <InfoRow label="Дата" value={object.date} />
+            </View>
+
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>Локация объекта</Text>
+              <Text style={styles.locationText}>{object.location}</Text>
+              <View style={styles.mapWrap}>
+                <UserMapCard
+                  height={220}
+                  markers={[
+                    {
+                      id: object.id,
+                      lat: object.coordinates.latitude,
+                      lng: object.coordinates.longitude,
+                      price: object.price,
+                    },
+                  ]}
+                  selectedMarkerId={object.id}
+                  initialRegion={{
+                    latitude: object.coordinates.latitude,
+                    longitude: object.coordinates.longitude,
+                    latitudeDelta: 0.05,
+                    longitudeDelta: 0.05,
+                  }}
+                  cityTitle={object.title}
+                  citySubtitle={object.location}
+                  showListButton={false}
+                  showScopeButton={false}
+                />
+              </View>
             </View>
           </>
         ) : (
@@ -86,5 +116,7 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
   infoLabel: { fontSize: 14, lineHeight: 21, color: '#939393' },
   infoValue: { fontSize: 14, lineHeight: 21, color: '#3A3A3A', fontWeight: '500' },
+  locationText: { fontSize: 14, lineHeight: 21, color: '#939393' },
+  mapWrap: { marginTop: 4 },
   empty: { fontSize: 16, lineHeight: 24, color: '#3A3A3A' },
 });

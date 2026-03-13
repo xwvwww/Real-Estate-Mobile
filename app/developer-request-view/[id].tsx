@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { getDeveloperRequestById } from '@/constants/developerData';
+import UserMapCard from '@/components/UserMapCard';
 
 export default function DeveloperRequestViewScreen() {
   const router = useRouter();
@@ -34,6 +35,35 @@ export default function DeveloperRequestViewScreen() {
               <InfoRow label="Телефон" value={request.phone} />
               <InfoRow label="Доход" value={request.income} />
               <Text style={styles.note}>{request.note}</Text>
+            </View>
+
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>Локация объекта</Text>
+              <Text style={styles.location}>{request.location}</Text>
+              <View style={styles.mapWrap}>
+                <UserMapCard
+                  height={220}
+                  markers={[
+                    {
+                      id: request.id,
+                      lat: request.coordinates.latitude,
+                      lng: request.coordinates.longitude,
+                      price: 'Объект',
+                    },
+                  ]}
+                  selectedMarkerId={request.id}
+                  initialRegion={{
+                    latitude: request.coordinates.latitude,
+                    longitude: request.coordinates.longitude,
+                    latitudeDelta: 0.05,
+                    longitudeDelta: 0.05,
+                  }}
+                  cityTitle={request.project}
+                  citySubtitle={request.location}
+                  showListButton={false}
+                  showScopeButton={false}
+                />
+              </View>
             </View>
 
             <View style={styles.actionRow}>
@@ -94,6 +124,8 @@ const styles = StyleSheet.create({
   infoLabel: { fontSize: 14, lineHeight: 21, color: '#939393' },
   infoValue: { fontSize: 14, lineHeight: 21, color: '#3A3A3A', fontWeight: '500' },
   note: { fontSize: 14, lineHeight: 22, color: '#5D5D5D' },
+  location: { fontSize: 14, lineHeight: 21, color: '#939393' },
+  mapWrap: { marginTop: 4 },
   actionRow: { flexDirection: 'row', gap: 10 },
   primaryBtn: { flex: 1, height: 48, borderRadius: 12, backgroundColor: '#70A0FF', alignItems: 'center', justifyContent: 'center' },
   primaryBtnText: { fontSize: 15, lineHeight: 22, color: '#FFFFFF', fontWeight: '600' },

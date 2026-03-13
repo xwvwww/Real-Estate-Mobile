@@ -171,7 +171,7 @@ export default function UserMapCard({
       ) : null}
 
       {activeMarkerId && markerMap[activeMarkerId] ? (
-        <View style={styles.selectedHint}>
+        <View style={[styles.selectedHint, showScopeButton && styles.selectedHintWithScope]}>
           <Text style={styles.selectedHintText}>Выбрано: {markerMap[activeMarkerId].price}</Text>
         </View>
       ) : null}
@@ -308,12 +308,15 @@ const styles = StyleSheet.create({
   selectedHint: {
     position: 'absolute',
     left: 16,
-    right: 64,
-    bottom: 62,
-    borderRadius: 10,
+    bottom: 14,
+    maxWidth: 148,
+    borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.96)',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
+  },
+  selectedHintWithScope: {
+    bottom: 14,
   },
   selectedHintText: {
     fontSize: 12,

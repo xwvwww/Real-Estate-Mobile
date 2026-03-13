@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { getDeveloperProjectById } from '@/constants/developerData';
+import UserMapCard from '@/components/UserMapCard';
 
 export default function DeveloperProjectViewScreen() {
   const router = useRouter();
@@ -38,6 +39,35 @@ export default function DeveloperProjectViewScreen() {
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Описание</Text>
               <Text style={styles.description}>{project.description}</Text>
+            </View>
+
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>Локация проекта</Text>
+              <Text style={styles.locationText}>{project.location}</Text>
+              <View style={styles.mapWrap}>
+                <UserMapCard
+                  height={220}
+                  markers={[
+                    {
+                      id: project.id,
+                      lat: project.coordinates.latitude,
+                      lng: project.coordinates.longitude,
+                      price: project.units,
+                    },
+                  ]}
+                  selectedMarkerId={project.id}
+                  initialRegion={{
+                    latitude: project.coordinates.latitude,
+                    longitude: project.coordinates.longitude,
+                    latitudeDelta: 0.08,
+                    longitudeDelta: 0.08,
+                  }}
+                  cityTitle={project.title}
+                  citySubtitle={project.location}
+                  showListButton={false}
+                  showScopeButton={false}
+                />
+              </View>
             </View>
           </>
         ) : (
@@ -88,5 +118,7 @@ const styles = StyleSheet.create({
   infoLabel: { fontSize: 14, lineHeight: 21, color: '#939393' },
   infoValue: { fontSize: 14, lineHeight: 21, color: '#3A3A3A', fontWeight: '500' },
   description: { fontSize: 14, lineHeight: 22, color: '#5D5D5D' },
+  locationText: { fontSize: 14, lineHeight: 21, color: '#939393' },
+  mapWrap: { marginTop: 4 },
   empty: { fontSize: 16, lineHeight: 24, color: '#3A3A3A' },
 });

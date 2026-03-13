@@ -3,67 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
-
-type ProjectItem = {
-  id: string;
-  title: string;
-  status: string;
-  statusColor: string;
-  statusBg: string;
-  units: string;
-  views: string;
-  createdAt?: string;
-};
-
-const PROJECTS: ProjectItem[] = [
-  {
-    id: 'comfort-town',
-    title: 'ЖК "Comfort Town"',
-    status: 'Активно',
-    statusColor: '#388E3C',
-    statusBg: '#E8F5E9',
-    units: '35',
-    views: '8 453',
-  },
-  {
-    id: 'green-valley',
-    title: 'ЖК "Green Valley"',
-    status: 'Активно',
-    statusColor: '#388E3C',
-    statusBg: '#E8F5E9',
-    units: '28',
-    views: '6 234',
-  },
-  {
-    id: 'smart-city',
-    title: 'ЖК "Smart City"',
-    status: 'На модерации',
-    statusColor: '#F57C00',
-    statusBg: '#FFF3E0',
-    units: '15',
-    views: '3 890',
-  },
-  {
-    id: 'premium-plaza',
-    title: 'ЖК "Premium Plaza"',
-    status: 'Активно',
-    statusColor: '#388E3C',
-    statusBg: '#E8F5E9',
-    units: '42',
-    views: '9 876',
-    createdAt: 'Создан: 1 января 2026',
-  },
-  {
-    id: 'city-park',
-    title: 'ЖК "City Park"',
-    status: 'Активно',
-    statusColor: '#388E3C',
-    statusBg: '#E8F5E9',
-    units: '22',
-    views: '4 532',
-    createdAt: 'Создан: 15 декабря 2025',
-  },
-];
+import { DEVELOPER_PROJECTS } from '@/constants/developerData';
 
 export default function DeveloperProjectsScreen() {
   const router = useRouter();
@@ -74,7 +14,7 @@ export default function DeveloperProjectsScreen() {
         <Pressable style={styles.backButton} onPress={() => router.replace('/developer-dashboard')}>
           <Ionicons name="chevron-back" size={22} color="#70A0FF" />
         </Pressable>
-        <Text style={styles.headerTitle}>Кабинет застройщика</Text>
+        <Text style={styles.headerTitle}>Проекты</Text>
       </View>
 
       <View style={styles.main}>
@@ -84,8 +24,11 @@ export default function DeveloperProjectsScreen() {
           showsVerticalScrollIndicator={false}
           bounces={false}
           overScrollMode="never">
-          {PROJECTS.map((project) => (
-            <View key={project.id} style={styles.projectCard}>
+          {DEVELOPER_PROJECTS.map((project) => (
+            <Pressable
+              key={project.id}
+              style={styles.projectCard}
+              onPress={() => router.push({ pathname: '/developer-project-view/[id]', params: { id: project.id } })}>
               <Text style={styles.projectTitle}>{project.title}</Text>
 
               <View style={[styles.statusPill, { backgroundColor: project.statusBg }]}>
@@ -104,7 +47,7 @@ export default function DeveloperProjectsScreen() {
               </View>
 
               {project.createdAt ? <Text style={styles.createdText}>{project.createdAt}</Text> : null}
-            </View>
+            </Pressable>
           ))}
         </ScrollView>
 
@@ -156,7 +99,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 140,
+    paddingBottom: 92,
     gap: 12,
   },
   projectCard: {

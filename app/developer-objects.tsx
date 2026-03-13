@@ -3,48 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
-
-type ObjectStatus = {
-  label: string;
-  color: string;
-  bg: string;
-};
-
-type ObjectItem = {
-  id: string;
-  title: string;
-  project: string;
-  status: ObjectStatus;
-  views: string;
-  date: string;
-};
-
-const OBJECTS: ObjectItem[] = [
-  {
-    id: 'o1',
-    title: '2-комнатная квартира 65 м²',
-    project: 'ЖК "Comfort Town"',
-    status: { label: 'Активно', color: '#388E3C', bg: '#E8F5E9' },
-    views: '245',
-    date: '15 февраля 2026',
-  },
-  {
-    id: 'o2',
-    title: '3-комнатная квартира 95 м²',
-    project: 'ЖК "Green Valley"',
-    status: { label: 'Активно', color: '#388E3C', bg: '#E8F5E9' },
-    views: '189',
-    date: '12 февраля 2026',
-  },
-  {
-    id: 'o3',
-    title: 'Студия 35 м²',
-    project: 'ЖК "Smart City"',
-    status: { label: 'На модерации', color: '#F57C00', bg: '#FFF3E0' },
-    views: '67',
-    date: '10 февраля 2026',
-  },
-];
+import { DEVELOPER_OBJECTS } from '@/constants/developerData';
 
 export default function DeveloperObjectsScreen() {
   const router = useRouter();
@@ -55,7 +14,7 @@ export default function DeveloperObjectsScreen() {
         <Pressable style={styles.backButton} onPress={() => router.replace('/developer-dashboard')}>
           <Ionicons name="chevron-back" size={22} color="#70A0FF" />
         </Pressable>
-        <Text style={styles.headerTitle}>Кабинет застройщика</Text>
+        <Text style={styles.headerTitle}>Объекты</Text>
       </View>
 
       <View style={styles.main}>
@@ -65,8 +24,11 @@ export default function DeveloperObjectsScreen() {
           showsVerticalScrollIndicator={false}
           bounces={false}
           overScrollMode="never">
-          {OBJECTS.map((item) => (
-            <View key={item.id} style={styles.card}>
+          {DEVELOPER_OBJECTS.map((item) => (
+            <Pressable
+              key={item.id}
+              style={styles.card}
+              onPress={() => router.push({ pathname: '/developer-object-view/[id]', params: { id: item.id } })}>
               <Text style={styles.title}>{item.title}</Text>
               <Text style={styles.project}>{item.project}</Text>
 
@@ -82,7 +44,7 @@ export default function DeveloperObjectsScreen() {
               </View>
 
               <Text style={styles.date}>{item.date}</Text>
-            </View>
+            </Pressable>
           ))}
         </ScrollView>
 

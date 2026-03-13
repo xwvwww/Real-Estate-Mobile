@@ -3,37 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
-
-type RequestItem = {
-  id: string;
-  title: string;
-  applicant: string;
-  note: string;
-  status: string;
-  statusColor: string;
-  statusBg: string;
-};
-
-const REQUESTS: RequestItem[] = [
-  {
-    id: 'r1',
-    title: '2-комнатная квартира 65 м²',
-    applicant: 'Иван Иванов',
-    note: 'Семья из 3 человек, доход подтвержден',
-    status: 'Новая',
-    statusColor: '#1976D2',
-    statusBg: '#E3F2FD',
-  },
-  {
-    id: 'r2',
-    title: '3-комнатная квартира 95 м²',
-    applicant: 'Мария Петрова',
-    note: 'Семья из 2 человек, постоянный доход',
-    status: 'Рассматривается',
-    statusColor: '#F57C00',
-    statusBg: '#FFF3E0',
-  },
-];
+import { DEVELOPER_REQUESTS } from '@/constants/developerData';
 
 export default function DeveloperRequestsScreen() {
   const router = useRouter();
@@ -44,7 +14,7 @@ export default function DeveloperRequestsScreen() {
         <Pressable style={styles.backButton} onPress={() => router.replace('/developer-dashboard')}>
           <Ionicons name="chevron-back" size={22} color="#70A0FF" />
         </Pressable>
-        <Text style={styles.headerTitle}>Кабинет застройщика</Text>
+        <Text style={styles.headerTitle}>Заявки</Text>
       </View>
 
       <ScrollView
@@ -53,15 +23,18 @@ export default function DeveloperRequestsScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never">
-        {REQUESTS.map((request) => (
-          <View key={request.id} style={styles.card}>
+        {DEVELOPER_REQUESTS.map((request) => (
+          <Pressable
+            key={request.id}
+            style={styles.card}
+            onPress={() => router.push({ pathname: '/developer-request-view/[id]', params: { id: request.id } })}>
             <Text style={styles.title}>{request.title}</Text>
             <Text style={styles.applicant}>{request.applicant}</Text>
             <Text style={styles.note}>{request.note}</Text>
             <View style={[styles.statusPill, { backgroundColor: request.statusBg }]}>
               <Text style={[styles.statusText, { color: request.statusColor }]}>{request.status}</Text>
             </View>
-          </View>
+          </Pressable>
         ))}
       </ScrollView>
 

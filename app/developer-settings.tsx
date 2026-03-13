@@ -131,10 +131,6 @@ export default function DeveloperSettingsScreen() {
               </View>
             </View>
           ))}
-
-          <Pressable style={styles.primaryButton}>
-            <Text style={styles.primaryButtonText}>Сохранить изменения</Text>
-          </Pressable>
         </View>
 
         <Pressable style={styles.logoutButton} onPress={onLogout}>

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useMemo, useState } from 'react';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
 
 type Metric = {
@@ -40,11 +41,18 @@ const METRICS: Metric[] = [
   },
 ];
 
-const SALES_BARS = [58, 84, 102, 124, 116, 138];
-const SALES_MONTHS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'];
+const PERIODS = [
+  { key: '3m', label: '3 мес', bars: [72, 96, 118], months: ['Янв', 'Фев', 'Мар'] },
+  { key: '6m', label: '6 мес', bars: [58, 84, 102, 124, 116, 138], months: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'] },
+  { key: '9m', label: '9 мес', bars: [40, 58, 84, 102, 124, 116, 138, 130, 145], months: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен'] },
+  { key: '12m', label: '12 мес', bars: [36, 48, 57, 72, 84, 102, 124, 116, 138, 130, 142, 150], months: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'] },
+] as const;
 
 export default function DeveloperAnalyticsScreen() {
   const router = useRouter();
+  const [periodOpen, setPeriodOpen] = useState(false);
+  const [periodKey, setPeriodKey] = useState<(typeof PERIODS)[number]['key']>('6m');
+  const selectedPeriod = useMemo(() => PERIODS.find((item) => item.key === periodKey) ?? PERIODS[1], [periodKey]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -52,7 +60,7 @@ export default function DeveloperAnalyticsScreen() {
         <Pressable style={styles.backButton} onPress={() => router.replace('/developer-dashboard')}>
           <Ionicons name="chevron-back" size={22} color="#70A0FF" />
         </Pressable>
-        <Text style={styles.headerTitle}>Кабинет застройщика</Text>
+        <Text style={styles.headerTitle}>Аналитика</Text>
       </View>
 
       <ScrollView
@@ -63,7 +71,10 @@ export default function DeveloperAnalyticsScreen() {
         overScrollMode="never">
         <View style={styles.metricsWrap}>
           {METRICS.map((item) => (
-            <View key={item.id} style={styles.metricCard}>
+            <Pressable
+              key={item.id}
+              style={styles.metricCard}
+              onPress={item.id === 'requests' ? () => router.replace('/developer-requests') : undefined}>
               <View>
                 <Text style={styles.metricValue}>{item.value}</Text>
                 <Text style={styles.metricLabel}>{item.label}</Text>
@@ -71,29 +82,54 @@ export default function DeveloperAnalyticsScreen() {
               <View style={[styles.metricIconWrap, { backgroundColor: item.iconBg }]}>
                 <Ionicons name={item.icon} size={28} color={item.iconColor} />
               </View>
-            </View>
+            </Pressable>
           ))}
         </View>
 
         <View style={styles.chartCard}>
           <View style={styles.chartHeader}>
             <Text style={styles.chartTitle}>Динамика продаж</Text>
-            <Pressable style={styles.periodButton}>
-              <Text style={styles.periodText}>6 мес</Text>
-              <Ionicons name="chevron-down" size={14} color="#939393" />
-            </Pressable>
+            <View style={styles.periodWrap}>
+              <Pressable style={styles.periodButton} onPress={() => setPeriodOpen((prev) => !prev)}>
+                <Text style={styles.periodText}>{selectedPeriod.label}</Text>
+                <Ionicons name={periodOpen ? 'chevron-up' : 'chevron-down'} size={14} color="#939393" />
+              </Pressable>
+
+              {periodOpen ? (
+                <View style={styles.periodMenu}>
+                  {PERIODS.map((period, index) => (
+                    <Pressable
+                      key={period.key}
+                      style={[
+                        styles.periodItem,
+                        period.key === periodKey && styles.periodItemActive,
+                        index === PERIODS.length - 1 && styles.periodItemLast,
+                      ]}
+                      onPress={() => {
+                        setPeriodKey(period.key);
+                        setPeriodOpen(false);
+                      }}>
+                      <Text style={[styles.periodItemText, period.key === periodKey && styles.periodItemTextActive]}>
+                        {period.label}
+                      </Text>
+                      {period.key === periodKey ? <Ionicons name="checkmark" size={16} color="#70A0FF" /> : null}
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+            </View>
           </View>
 
           <View style={styles.chartArea}>
             <View style={styles.barsRow}>
-              {SALES_BARS.map((height, idx) => (
+              {selectedPeriod.bars.map((height, idx) => (
                 <View key={`${height}-${idx}`} style={styles.barSlot}>
                   <View style={[styles.bar, { height }]} />
                 </View>
               ))}
             </View>
             <View style={styles.monthsRow}>
-              {SALES_MONTHS.map((month) => (
+              {selectedPeriod.months.map((month) => (
                 <Text key={month} style={styles.monthText}>
                   {month}
                 </Text>
@@ -189,6 +225,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    zIndex: 5,
+  },
+  periodWrap: {
+    position: 'relative',
+    alignItems: 'flex-end',
   },
   chartTitle: {
     fontSize: 16,
@@ -197,18 +238,60 @@ const styles = StyleSheet.create({
     color: '#3A3A3A',
   },
   periodButton: {
-    height: 30,
+    minWidth: 82,
+    height: 28,
     borderRadius: 10,
     backgroundColor: '#F8F8F8',
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
   periodText: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: '#3A3A3A',
+  },
+  periodMenu: {
+    position: 'absolute',
+    top: 34,
+    right: 0,
+    width: 92,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+    shadowColor: '#101828',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 8,
+    zIndex: 20,
+  },
+  periodItem: {
+    minHeight: 36,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  periodItemLast: {
+    borderBottomWidth: 0,
+  },
+  periodItemActive: {
+    backgroundColor: '#F0F7FF',
+  },
+  periodItemText: {
     fontSize: 12,
     lineHeight: 18,
     color: '#3A3A3A',
+  },
+  periodItemTextActive: {
+    color: '#70A0FF',
+    fontWeight: '600',
   },
   chartArea: {
     marginTop: 16,
@@ -238,9 +321,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 6,
   },
   monthText: {
-    width: 38,
+    flex: 1,
     textAlign: 'center',
     fontSize: 10,
     lineHeight: 15,

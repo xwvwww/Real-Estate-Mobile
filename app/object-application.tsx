@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   Pressable,
@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import AppCheckbox from '@/components/AppCheckbox';
+import { getListingById } from '@/constants/userListings';
 
 const LEASE_TERMS = ['3-6 месяцев', '6-12 месяцев', '1-2 года', 'Более 2 лет'];
 const GENDERS = ['М', 'Ж', 'Другое'] as const;
@@ -19,6 +20,8 @@ type Gender = (typeof GENDERS)[number];
 
 export default function ObjectApplicationScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const listing = getListingById(id);
 
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
@@ -51,7 +54,7 @@ export default function ObjectApplicationScreen() {
 
       <View style={styles.objectBanner}>
         <Text style={styles.objectBannerLabel}>Объект недвижимости</Text>
-        <Text style={styles.objectBannerTitle}>3-комнатная квартира</Text>
+        <Text style={styles.objectBannerTitle}>{listing?.title ?? 'Объект недвижимости'}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

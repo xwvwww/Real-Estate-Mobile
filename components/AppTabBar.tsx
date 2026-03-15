@@ -13,14 +13,17 @@ const ROUTE_CONFIG: Record<
 > = {
   index: { label: 'Главная', icon: 'home-outline' },
   projects: { label: 'Каталог', icon: 'search-outline' },
-  analytics: { label: 'Избранное', icon: 'heart-outline' },
+  favorites: { label: 'Избранное', icon: 'heart-outline' },
+  requests: { label: 'Заявки', icon: 'mail-outline' },
+  messages: { label: 'Сообщ.', icon: 'chatbubble-outline' },
   profile: { label: 'Профиль', icon: 'person-outline' },
 };
 
 export function AppTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+
   const visibleRoutes = state.routes.filter((route) => {
-    const options = descriptors[route.key]?.options;
+    const options = descriptors[route.key]?.options as { href?: string | null } | undefined;
     return options?.href !== null && ROUTE_CONFIG[route.name];
   });
 
@@ -55,8 +58,7 @@ export function AppTabBar({ state, descriptors, navigation }: BottomTabBarProps)
                 });
               }}
               style={styles.tabItem}
-              hitSlop={8}
-            >
+              hitSlop={8}>
               <Ionicons name={config.icon} size={24} color={tintColor} />
               <Text style={[styles.tabLabel, { color: tintColor }]} numberOfLines={1}>
                 {config.label}
@@ -81,7 +83,7 @@ const styles = StyleSheet.create({
   contentRow: {
     minHeight: 62,
     paddingTop: 6,
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -93,9 +95,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabLabel: {
-    marginTop: 4,
-    fontSize: 12,
-    lineHeight: 16,
+    marginTop: 3,
+    fontSize: 10,
+    lineHeight: 14,
     fontWeight: '400',
     textAlign: 'center',
     includeFontPadding: false,

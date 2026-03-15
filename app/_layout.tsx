@@ -19,14 +19,35 @@ export default function RootLayout() {
         <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
         <Stack.Screen name="register" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-<<<<<<< HEAD
+        <Stack.Screen name="message/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="request/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="object/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="object-application" options={{ headerShown: false }} />
-=======
->>>>>>> a6cf9b0a1952f5ef070b197f1a41b9f238c917b2
-        <Stack.Screen name="moderator-dashboard" options={{ headerShown: false }} />
-        <Stack.Screen name="agency-dashboard" options={{ headerShown: false }} />
-        <Stack.Screen name="developer-dashboard" options={{ headerShown: false }} />
+        <Stack.Screen name="change-password" options={{ headerShown: false }} />
+        <Stack.Screen name="agency-dashboard" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-listings" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-requests" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-messages" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-settings" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-listing-view/[id]" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-edit-listing/[id]" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-request-view/[id]" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-message/[id]" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-create-listing" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-create-listing-step2" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-create-listing-step3" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="agency-create-listing-step4" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="developer-dashboard" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="developer-projects" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="developer-project-view/[id]" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="developer-create-project" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="developer-create-object" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="developer-objects" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="developer-object-view/[id]" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="developer-requests" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="developer-request-view/[id]" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="developer-analytics" options={{ headerShown: false, animation: 'none' }} />
+        <Stack.Screen name="developer-settings" options={{ headerShown: false, animation: 'none' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />

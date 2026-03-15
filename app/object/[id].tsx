@@ -1,91 +1,104 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, SafeAreaView, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import UserMapCard from '@/components/UserMapCard';
-
-const OBJECT_IMAGE = require('@/assets/images/ObjectNine.png');
-
-const FEATURES = ['Ремонт', 'Мебель', 'Техника', 'Балкон', 'Парковка'];
+import { getListingById } from '@/constants/userListings';
+import { toggleFavorite, useIsFavorite } from '@/stores/favoritesStore';
 
 export default function ObjectDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const listing = getListingById(id);
+  const isFavorite = useIsFavorite(listing?.id ?? '');
+  const [activeSlide] = useState(0);
+
+  if (!listing) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.emptyWrap}>
+          <Text style={styles.emptyTitle}>Объект не найден</Text>
+          <Pressable style={styles.emptyButton} onPress={() => router.back()}>
+            <Text style={styles.emptyButtonText}>Назад</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const onShare = async () => {
+    try {
+      await Share.share({
+        message: `${listing.title}\n${listing.price}\n${listing.address}`,
+      });
+    } catch {
+      // ignore share dismiss errors
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.heroWrap}>
-        <Image source={OBJECT_IMAGE} style={styles.heroImage} contentFit="cover" />
+        <Image source={listing.image} style={styles.heroImage} contentFit="cover" />
 
         <Pressable style={styles.topLeftBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color="#3A3A3A" />
         </Pressable>
 
         <View style={styles.topRightButtons}>
-          <Pressable style={styles.roundBtn}>
+          <Pressable style={styles.roundBtn} onPress={onShare}>
             <Ionicons name="share-social-outline" size={20} color="#3A3A3A" />
           </Pressable>
-          <Pressable style={styles.roundBtn}>
-            <Ionicons name="heart-outline" size={20} color="#3A3A3A" />
+          <Pressable style={styles.roundBtn} onPress={() => toggleFavorite(listing.id)}>
+            <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={20} color={isFavorite ? '#F25C7B' : '#3A3A3A'} />
           </Pressable>
         </View>
 
-        <Pressable style={styles.sideBtnLeft}>
-          <Ionicons name="chevron-back" size={18} color="#3A3A3A" />
-        </Pressable>
-        <Pressable style={styles.sideBtnRight}>
-          <Ionicons name="chevron-forward" size={18} color="#3A3A3A" />
-        </Pressable>
-
         <View style={styles.badgeType}>
-          <Text style={styles.badgeTypeText}>Новостройка</Text>
+          <Text style={styles.badgeTypeText}>{listing.type}</Text>
         </View>
         <View style={styles.badgeCounter}>
-          <Text style={styles.badgeCounterText}>1 / 3</Text>
+          <Text style={styles.badgeCounterText}>{activeSlide + 1} / 1</Text>
         </View>
       </View>
 
       <View style={styles.sliderDots}>
         <View style={styles.dotActive} />
-        <View style={styles.dot} />
-        <View style={styles.dot} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.price}>9 200 000 ₸</Text>
-        <Text style={styles.title}>Студия в новостройке</Text>
+        <Text style={styles.price}>{listing.price}</Text>
+        <Text style={styles.title}>{listing.title}</Text>
         <View style={styles.addressRow}>
           <Ionicons name="location-outline" size={14} color="#939393" />
-          <Text style={styles.address}>ул. Розыбакиева 289</Text>
+          <Text style={styles.address}>{listing.address}</Text>
         </View>
 
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
             <Ionicons name="bed-outline" size={20} color="#70A0FF" />
-            <Text style={styles.statValue}>1</Text>
+            <Text style={styles.statValue}>{listing.beds}</Text>
             <Text style={styles.statLabel}>комнат</Text>
           </View>
           <View style={styles.statCard}>
             <Ionicons name="resize-outline" size={20} color="#70A0FF" />
-            <Text style={styles.statValue}>38</Text>
+            <Text style={styles.statValue}>{listing.area.replace(' м²', '')}</Text>
             <Text style={styles.statLabel}>м²</Text>
           </View>
           <View style={styles.statCard}>
             <Ionicons name="business-outline" size={20} color="#70A0FF" />
-            <Text style={styles.statValue}>8</Text>
+            <Text style={styles.statValue}>{listing.floor.replace(' этаж', '')}</Text>
             <Text style={styles.statLabel}>этаж</Text>
           </View>
         </View>
 
         <Text style={styles.sectionTitle}>Описание</Text>
-        <Text style={styles.sectionText}>
-          Новая студия в современном жилом комплексе. Идеально подходит для молодой пары или
-          студента.
-        </Text>
+        <Text style={styles.sectionText}>{listing.description}</Text>
 
         <Text style={styles.sectionTitle}>Особенности</Text>
         <View style={styles.featureWrap}>
-          {FEATURES.map((feature) => (
+          {listing.features.map((feature) => (
             <View key={feature} style={styles.featureTag}>
               <Text style={styles.featureTagText}>{feature}</Text>
             </View>
@@ -93,7 +106,28 @@ export default function ObjectDetailsScreen() {
         </View>
 
         <Text style={styles.sectionTitle}>Расположение</Text>
-        <UserMapCard />
+        <UserMapCard
+          height={260}
+          markers={[
+            {
+              id: `m-${listing.id}`,
+              lat: listing.latitude,
+              lng: listing.longitude,
+              price: listing.price,
+              listingId: listing.id,
+            },
+          ]}
+          initialRegion={{
+            latitude: listing.latitude,
+            longitude: listing.longitude,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
+          }}
+          cityTitle={listing.city}
+          citySubtitle={listing.address}
+          showListButton={false}
+          showScopeButton={false}
+        />
 
         <View style={styles.agencyCard}>
           <View style={styles.agencyHeader}>
@@ -105,11 +139,8 @@ export default function ObjectDetailsScreen() {
               <Text style={styles.agencyStatus}>Проверено</Text>
             </View>
           </View>
-          <Text style={styles.agencyText}>
-            Профессиональная помощь в подборе и оформлении недвижимости
-          </Text>
+          <Text style={styles.agencyText}>Профессиональная помощь в подборе и оформлении недвижимости</Text>
         </View>
-
       </ScrollView>
 
       <View style={styles.bottomBar}>
@@ -123,9 +154,7 @@ export default function ObjectDetailsScreen() {
             <Text style={styles.secondaryActionText}>Написать</Text>
           </Pressable>
         </View>
-        <Pressable
-          style={styles.primaryAction}
-          onPress={() => router.push({ pathname: '/object-application', params: { id } })}>
+        <Pressable style={styles.primaryAction} onPress={() => router.push({ pathname: '/object-application', params: { id } })}>
           <Text style={styles.primaryActionText}>Оставить заявку</Text>
         </Pressable>
       </View>
@@ -135,6 +164,17 @@ export default function ObjectDetailsScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
+  emptyWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  emptyTitle: { fontSize: 18, lineHeight: 27, fontWeight: '600', color: '#3A3A3A' },
+  emptyButton: {
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#70A0FF',
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyButtonText: { color: '#FFFFFF', fontSize: 15, lineHeight: 22, fontWeight: '500' },
   heroWrap: { height: 280, position: 'relative', backgroundColor: '#111' },
   heroImage: { ...StyleSheet.absoluteFillObject },
   topLeftBtn: {
@@ -154,28 +194,6 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sideBtnLeft: {
-    position: 'absolute',
-    left: 8,
-    top: 122,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sideBtnRight: {
-    position: 'absolute',
-    right: 8,
-    top: 122,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.8)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -213,7 +231,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   dotActive: { width: 24, height: 6, borderRadius: 999, backgroundColor: '#70A0FF' },
-  dot: { width: 6, height: 6, borderRadius: 999, backgroundColor: '#E0E0E0' },
   content: { padding: 16, paddingBottom: 164 },
   price: { fontSize: 38, lineHeight: 42, color: '#3A3A3A', fontWeight: '600' },
   title: { marginTop: 8, fontSize: 18, lineHeight: 27, color: '#3A3A3A' },

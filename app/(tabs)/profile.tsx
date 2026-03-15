@@ -70,7 +70,7 @@ export default function ProfileScreen() {
 
         <View style={[styles.card, styles.securityCard]}>
           <Text style={styles.cardTitle}>Безопасность</Text>
-          <Pressable style={styles.secondaryButton}>
+          <Pressable style={styles.secondaryButton} onPress={() => router.push('/change-password')}>
             <Text style={styles.secondaryButtonText}>Изменить пароль</Text>
           </Pressable>
         </View>

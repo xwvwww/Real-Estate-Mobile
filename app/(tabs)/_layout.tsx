@@ -29,6 +29,18 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="requests"
+        options={{
+          title: 'Заявки',
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Сообщения',
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Профиль',

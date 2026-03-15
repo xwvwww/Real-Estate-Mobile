@@ -14,6 +14,8 @@ const ROUTE_CONFIG: Record<
   index: { label: 'Главная', icon: 'home-outline' },
   projects: { label: 'Каталог', icon: 'search-outline' },
   favorites: { label: 'Избранное', icon: 'heart-outline' },
+  requests: { label: 'Заявки', icon: 'mail-outline' },
+  messages: { label: 'Сообщ.', icon: 'chatbubble-outline' },
   profile: { label: 'Профиль', icon: 'person-outline' },
 };
 
@@ -81,7 +83,7 @@ const styles = StyleSheet.create({
   contentRow: {
     minHeight: 62,
     paddingTop: 6,
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -93,9 +95,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   tabLabel: {
-    marginTop: 4,
-    fontSize: 12,
-    lineHeight: 16,
+    marginTop: 3,
+    fontSize: 10,
+    lineHeight: 14,
     fontWeight: '400',
     textAlign: 'center',
     includeFontPadding: false,

@@ -2,18 +2,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
-import { DEVELOPER_REQUESTS } from '@/constants/developerData';
 
-export default function DeveloperRequestsScreen() {
+import { AgencyBottomBar } from '@/components/AgencyBottomBar';
+import { AGENCY_REQUESTS } from '@/constants/agencyData';
+
+export default function AgencyRequestsScreen() {
   const router = useRouter();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.replace('/developer-dashboard')}>
-          <Ionicons name="chevron-back" size={22} color="#70A0FF" />
-        </Pressable>
         <Text style={styles.headerTitle}>Заявки</Text>
       </View>
 
@@ -23,22 +21,23 @@ export default function DeveloperRequestsScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never">
-        {DEVELOPER_REQUESTS.map((request) => (
-          <Pressable
-            key={request.id}
-            style={styles.card}
-            onPress={() => router.push({ pathname: '/developer-request-view/[id]', params: { id: request.id } })}>
-            <Text style={styles.title}>{request.title}</Text>
-            <Text style={styles.applicant}>{request.applicant}</Text>
-            <Text style={styles.note}>{request.note}</Text>
-            <View style={[styles.statusPill, { backgroundColor: request.statusBg }]}>
-              <Text style={[styles.statusText, { color: request.statusColor }]}>{request.status}</Text>
+        {AGENCY_REQUESTS.map((item) => (
+          <Pressable key={item.id} style={styles.card} onPress={() => router.push(`/agency-request-view/${item.id}` as any)}>
+            <Text style={styles.objectTitle}>{item.objectTitle}</Text>
+            <Text style={styles.applicantName}>{item.applicantName}</Text>
+            <Text style={styles.summary}>{item.summary}</Text>
+
+            <View style={styles.bottomRow}>
+              <View style={[styles.statusPill, { backgroundColor: item.status.bgColor }]}>
+                <Text style={[styles.statusText, { color: item.status.textColor }]}>{item.status.label}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#B6B6B6" />
             </View>
           </Pressable>
         ))}
       </ScrollView>
 
-      <DeveloperBottomBar active="requests" />
+      <AgencyBottomBar active="requests" />
     </SafeAreaView>
   );
 }
@@ -57,15 +56,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
   },
-  backButton: {
-    position: 'absolute',
-    left: 12,
-    height: 34,
-    width: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 2,
-  },
   headerTitle: {
     fontSize: 18,
     lineHeight: 27,
@@ -74,6 +64,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
+    backgroundColor: '#F8F8F8',
   },
   content: {
     paddingHorizontal: 16,
@@ -87,31 +78,41 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 16,
+    shadowColor: '#000000',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
+    elevation: 1,
   },
-  title: {
+  objectTitle: {
     fontSize: 15,
     lineHeight: 23,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#3A3A3A',
   },
-  applicant: {
+  applicantName: {
     marginTop: 4,
     fontSize: 14,
     lineHeight: 21,
     color: '#3A3A3A',
   },
-  note: {
+  summary: {
     marginTop: 4,
     fontSize: 13,
     lineHeight: 20,
     color: '#939393',
   },
-  statusPill: {
+  bottomRow: {
     marginTop: 14,
-    alignSelf: 'flex-start',
-    minHeight: 26,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statusPill: {
+    height: 26,
     borderRadius: 999,
     paddingHorizontal: 12,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   statusText: {

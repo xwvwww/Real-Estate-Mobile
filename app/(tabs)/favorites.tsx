@@ -1,41 +1,13 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
-
-type FavoriteItem = {
-  id: string;
-  title: string;
-  city: string;
-  price: string;
-  image: any;
-};
-
-const FAVORITE_ITEMS: FavoriteItem[] = [
-  {
-    id: 'r1',
-    title: '2-комнатная квартира',
-    city: 'Алматы',
-    price: '12 500 000 ₸',
-    image: require('@/assets/images/ObjectOne.png'),
-  },
-  {
-    id: 'r2',
-    title: '3-комнатная квартира',
-    city: 'Алматы',
-    price: '18 900 000 ₸',
-    image: require('@/assets/images/ObjectTwo.png'),
-  },
-  {
-    id: 'r3',
-    title: 'Студия в новостройке',
-    city: 'Алматы',
-    price: '9 200 000 ₸',
-    image: require('@/assets/images/ObjectThree.png'),
-  },
-];
+import { USER_LISTINGS } from '@/constants/userListings';
+import { useFavoriteIds } from '@/stores/favoritesStore';
 
 export default function FavoritesScreen() {
   const router = useRouter();
+  const favoriteIds = useFavoriteIds();
+  const favoriteItems = USER_LISTINGS.filter((item) => favoriteIds.includes(item.id));
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -49,14 +21,19 @@ export default function FavoritesScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         alwaysBounceVertical={false}
-        overScrollMode="never"
-      >
-        {FAVORITE_ITEMS.map((item) => (
+        overScrollMode="never">
+        {favoriteItems.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyTitle}>Пока нет избранных объектов</Text>
+            <Text style={styles.emptyText}>Добавьте объекты в избранное из каталога или карточки объекта</Text>
+          </View>
+        ) : null}
+
+        {favoriteItems.map((item) => (
           <Pressable
             key={item.id}
             style={styles.card}
-            onPress={() => router.push({ pathname: '/object/[id]', params: { id: item.id } })}
-          >
+            onPress={() => router.push({ pathname: '/object/[id]', params: { id: item.id } })}>
             <Image source={item.image} style={styles.image} contentFit="cover" />
             <View style={styles.cardBody}>
               <Text style={styles.title}>{item.title}</Text>
@@ -97,6 +74,23 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 24,
     gap: 12,
+  },
+  emptyBox: {
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    gap: 4,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '600',
+    color: '#3A3A3A',
+  },
+  emptyText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#939393',
   },
   card: {
     borderRadius: 14,

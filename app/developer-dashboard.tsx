@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
+import { DEVELOPER_PROJECTS } from '@/constants/developerData';
 
 type MetricCard = {
   id: string;
@@ -10,16 +12,6 @@ type MetricCard = {
   icon: keyof typeof Ionicons.glyphMap;
   iconColor: string;
   iconBg: string;
-};
-
-type ProjectCard = {
-  id: string;
-  title: string;
-  units: string;
-  views: string;
-  status: string;
-  statusColor: string;
-  statusBg: string;
 };
 
 const METRICS: MetricCard[] = [
@@ -65,41 +57,23 @@ const METRICS: MetricCard[] = [
   },
 ];
 
-const PROJECTS: ProjectCard[] = [
-  {
-    id: 'p1',
-    title: 'ЖК "Comfort Town"',
-    units: '35',
-    views: '8 453',
-    status: 'Активно',
-    statusColor: '#388E3C',
-    statusBg: '#E8F5E9',
-  },
-  {
-    id: 'p2',
-    title: 'ЖК "Green Valley"',
-    units: '28',
-    views: '6 234',
-    status: 'Активно',
-    statusColor: '#388E3C',
-    statusBg: '#E8F5E9',
-  },
-  {
-    id: 'p3',
-    title: 'ЖК "Smart City"',
-    units: '15',
-    views: '3 890',
-    status: 'На модерации',
-    statusColor: '#F57C00',
-    statusBg: '#FFF3E0',
-  },
-];
-
 export default function DeveloperDashboardScreen() {
+  const router = useRouter();
+
+  const openProjects = () => router.replace('/developer-projects');
+  const openObjects = () => router.replace('/developer-objects');
+  const openRequests = () => router.replace('/developer-requests');
+
+  const onMetricPress = (id: string) => {
+    if (id === 'total') return openProjects();
+    if (id === 'active') return openObjects();
+    if (id === 'requests') return openRequests();
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Кабинет застройщика</Text>
+        <Text style={styles.headerTitle}>Обзор</Text>
       </View>
 
       <ScrollView
@@ -110,28 +84,31 @@ export default function DeveloperDashboardScreen() {
         overScrollMode="never">
         <View style={styles.metricsWrap}>
           {METRICS.map((metric) => (
-            <View key={metric.id} style={styles.metricCard}>
+            <Pressable key={metric.id} style={styles.metricCard} onPress={() => onMetricPress(metric.id)}>
               <View style={styles.metricTextWrap}>
                 <Text style={styles.metricValue}>{metric.value}</Text>
                 <Text style={styles.metricLabel}>{metric.label}</Text>
               </View>
-              <View style={[styles.metricIconWrap, { backgroundColor: metric.iconBg }]}> 
+              <View style={[styles.metricIconWrap, { backgroundColor: metric.iconBg }]}>
                 <Ionicons name={metric.icon} size={24} color={metric.iconColor} />
               </View>
-            </View>
+            </Pressable>
           ))}
         </View>
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Активные проекты</Text>
-          <Pressable>
+          <Pressable onPress={openProjects}>
             <Text style={styles.sectionAction}>Все</Text>
           </Pressable>
         </View>
 
         <View style={styles.projectsWrap}>
-          {PROJECTS.map((project) => (
-            <View key={project.id} style={styles.projectCard}>
+          {DEVELOPER_PROJECTS.slice(0, 3).map((project) => (
+            <Pressable
+              key={project.id}
+              style={styles.projectCard}
+              onPress={() => router.push({ pathname: '/developer-project-view/[id]', params: { id: project.id } })}>
               <Text style={styles.projectTitle}>{project.title}</Text>
               <View style={styles.projectStatsRow}>
                 <View style={styles.projectStat}>
@@ -146,7 +123,7 @@ export default function DeveloperDashboardScreen() {
               <View style={[styles.statusPill, { backgroundColor: project.statusBg }]}>
                 <Text style={[styles.statusText, { color: project.statusColor }]}>{project.status}</Text>
               </View>
-            </View>
+            </Pressable>
           ))}
         </View>
       </ScrollView>

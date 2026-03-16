@@ -1,9 +1,10 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
+import LogoutActionCard from '@/components/LogoutActionCard';
+import SettingsScreenHeader from '@/components/SettingsScreenHeader';
 
 type Employee = {
   id: string;
@@ -39,19 +40,13 @@ export default function DeveloperSettingsScreen() {
   const [email, setEmail] = useState('info@comforttown.kz');
   const [phone, setPhone] = useState('+7 (727) 987-65-43');
 
-  const sectionTitle = useMemo(() => 'Кабинет застройщика', []);
   const onLogout = () => {
     router.replace('/login');
   };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.replace('/developer-dashboard')}>
-          <Ionicons name="chevron-back" size={22} color="#70A0FF" />
-        </Pressable>
-        <Text style={styles.headerTitle}>{sectionTitle}</Text>
-      </View>
+      <SettingsScreenHeader />
 
       <ScrollView
         style={styles.scroll}
@@ -133,9 +128,7 @@ export default function DeveloperSettingsScreen() {
           ))}
         </View>
 
-        <Pressable style={styles.logoutButton} onPress={onLogout}>
-          <Text style={styles.logoutText}>Выйти из аккаунта</Text>
-        </Pressable>
+        <LogoutActionCard onPress={onLogout} />
       </ScrollView>
 
       <DeveloperBottomBar active="settings" />
@@ -147,30 +140,6 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: '#F8F8F8',
-  },
-  header: {
-    height: 73,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  backButton: {
-    position: 'absolute',
-    left: 12,
-    height: 34,
-    width: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 2,
-  },
-  headerTitle: {
-    fontSize: 18,
-    lineHeight: 27,
-    fontWeight: '600',
-    color: '#3A3A3A',
   },
   scroll: {
     flex: 1,
@@ -284,18 +253,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     color: '#70A0FF',
-  },
-  logoutButton: {
-    height: 56,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoutText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#D32F2F',
-    fontWeight: '500',
   },
 });

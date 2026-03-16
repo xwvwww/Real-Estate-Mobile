@@ -4,6 +4,8 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AgencyBottomBar } from '@/components/AgencyBottomBar';
+import LogoutActionCard from '@/components/LogoutActionCard';
+import SettingsScreenHeader from '@/components/SettingsScreenHeader';
 
 type Employee = {
   id: string;
@@ -39,9 +41,7 @@ export default function AgencySettingsScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Настройки</Text>
-      </View>
+      <SettingsScreenHeader />
 
       <ScrollView
         style={styles.scroll}
@@ -129,10 +129,9 @@ export default function AgencySettingsScreen() {
             ))}
           </View>
 
-          <Pressable style={styles.logoutButton} onPress={() => router.replace('/login')}>
-            <Text style={styles.logoutButtonText}>Выйти из аккаунта</Text>
-          </Pressable>
         </View>
+
+        <LogoutActionCard onPress={() => router.replace('/login')} />
       </ScrollView>
 
       <AgencyBottomBar active="settings" />
@@ -144,21 +143,6 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: '#F8F8F8',
-  },
-  header: {
-    height: 73,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  headerTitle: {
-    fontSize: 18,
-    lineHeight: 27,
-    fontWeight: '600',
-    color: '#3A3A3A',
   },
   scroll: {
     flex: 1,
@@ -285,20 +269,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     color: '#70A0FF',
-    fontWeight: '500',
-  },
-  logoutButton: {
-    marginTop: 12,
-    height: 56,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoutButtonText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#D32F2F',
     fontWeight: '500',
   },
 });

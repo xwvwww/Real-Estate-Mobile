@@ -1,6 +1,8 @@
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LogoutActionCard from '@/components/LogoutActionCard';
+import SettingsScreenHeader from '@/components/SettingsScreenHeader';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -11,9 +13,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Настройки</Text>
-      </View>
+      <SettingsScreenHeader />
 
       <ScrollView
         style={styles.scroll}
@@ -76,9 +76,7 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        <Pressable style={styles.logoutButton} onPress={onLogout}>
-          <Text style={styles.logoutText}>Выйти из аккаунта</Text>
-        </Pressable>
+        <LogoutActionCard onPress={onLogout} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -88,20 +86,6 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: '#F8F8F8',
-  },
-  header: {
-    height: 63,
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E8E8',
-    backgroundColor: '#FFFFFF',
-  },
-  headerTitle: {
-    fontSize: 20,
-    lineHeight: 28,
-    fontWeight: '600',
-    color: '#3A3A3A',
   },
   scroll: {
     backgroundColor: '#F8F8F8',
@@ -171,20 +155,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     color: '#70A0FF',
-    fontWeight: '500',
-  },
-  logoutButton: {
-    marginTop: 16,
-    height: 56,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoutText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#D32F2F',
     fontWeight: '500',
   },
 });

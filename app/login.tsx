@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import LoginPageIcon from '@/assets/images/LoginPageIcon.svg';
+import { findMockAccount, MOCK_ACCOUNTS_HINT } from '@/constants/mockAuth';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -23,27 +24,16 @@ export default function LoginScreen() {
   const canLogin = email.trim().length > 0 && password.trim().length > 0;
 
   const onLogin = () => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const normalizedPassword = password.trim();
+    const account = findMockAccount(email, password);
 
-    if (normalizedEmail === 'testuser@gmail.com' && normalizedPassword === '123456') {
-      router.replace('/(tabs)');
-      return;
-    }
-
-    if (normalizedEmail === 'testagency@gmail.com' && normalizedPassword === '123456') {
-      router.replace('/agency-dashboard');
-      return;
-    }
-
-    if (normalizedEmail === 'testdeveloper@gmail.com' && normalizedPassword === '123456') {
-      router.replace('/developer-dashboard');
+    if (account) {
+      router.replace(account.route);
       return;
     }
 
     Alert.alert(
       'Неверные данные',
-      'Тестовые аккаунты: testuser@gmail.com / 123456, testagency@gmail.com / 123456, testdeveloper@gmail.com / 123456'
+      `Тестовые аккаунты: ${MOCK_ACCOUNTS_HINT}`
     );
   };
 

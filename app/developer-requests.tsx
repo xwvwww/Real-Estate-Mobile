@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
+import { StatusBadge } from '@/components/StatusBadge';
 import { DEVELOPER_REQUESTS } from '@/constants/developerData';
 
 export default function DeveloperRequestsScreen() {
@@ -31,9 +32,7 @@ export default function DeveloperRequestsScreen() {
             <Text style={styles.title}>{request.title}</Text>
             <Text style={styles.applicant}>{request.applicant}</Text>
             <Text style={styles.note}>{request.note}</Text>
-            <View style={[styles.statusPill, { backgroundColor: request.statusBg }]}>
-              <Text style={[styles.statusText, { color: request.statusColor }]}>{request.status}</Text>
-            </View>
+            <StatusBadge label={request.status} backgroundColor={request.statusBg} textColor={request.statusColor} />
           </Pressable>
         ))}
       </ScrollView>

@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
+import { StatusBadge } from '@/components/StatusBadge';
 import { DEVELOPER_OBJECTS } from '@/constants/developerData';
 
 export default function DeveloperObjectsScreen() {
@@ -33,9 +34,7 @@ export default function DeveloperObjectsScreen() {
               <Text style={styles.project}>{item.project}</Text>
 
               <View style={styles.metaRow}>
-                <View style={[styles.statusPill, { backgroundColor: item.status.bg }]}>
-                  <Text style={[styles.statusText, { color: item.status.color }]}>{item.status.label}</Text>
-                </View>
+                <StatusBadge label={item.status.label} backgroundColor={item.status.bg} textColor={item.status.color} />
 
                 <View style={styles.viewsWrap}>
                   <Ionicons name="eye-outline" size={14} color="#939393" />

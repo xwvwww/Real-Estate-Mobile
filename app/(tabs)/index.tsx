@@ -5,6 +5,7 @@ import { useRef } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { USER_LISTINGS } from '@/constants/userListings';
+import { StatusBadge } from '@/components/StatusBadge';
 import { useFavoriteIds } from '@/stores/favoritesStore';
 
 type RequestItem = {
@@ -167,9 +168,7 @@ export default function UserDashboardScreen() {
             <Text style={styles.requestAgency}>{item.agency}</Text>
             <View style={styles.requestBottom}>
               <Text style={styles.requestDate}>{item.date}</Text>
-              <View style={[styles.statusPill, { backgroundColor: item.statusBg }]}>
-                <Text style={[styles.statusText, { color: item.statusColor }]}>{item.status}</Text>
-              </View>
+              <StatusBadge label={item.status} backgroundColor={item.statusBg} textColor={item.statusColor} />
             </View>
           </Pressable>
         ))}

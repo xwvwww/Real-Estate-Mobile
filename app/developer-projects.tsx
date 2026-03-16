@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
+import { StatusBadge } from '@/components/StatusBadge';
 import { DEVELOPER_PROJECTS } from '@/constants/developerData';
 
 export default function DeveloperProjectsScreen() {
@@ -31,9 +32,7 @@ export default function DeveloperProjectsScreen() {
               onPress={() => router.push({ pathname: '/developer-project-view/[id]', params: { id: project.id } })}>
               <Text style={styles.projectTitle}>{project.title}</Text>
 
-              <View style={[styles.statusPill, { backgroundColor: project.statusBg }]}>
-                <Text style={[styles.statusText, { color: project.statusColor }]}>{project.status}</Text>
-              </View>
+              <StatusBadge label={project.status} backgroundColor={project.statusBg} textColor={project.statusColor} />
 
               <View style={styles.statsRow}>
                 <View style={styles.statColumn}>
@@ -114,19 +113,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: '500',
     color: '#3A3A3A',
-  },
-  statusPill: {
-    marginTop: 8,
-    alignSelf: 'flex-start',
-    minHeight: 26,
-    borderRadius: 999,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '500',
   },
   statsRow: {
     marginTop: 12,

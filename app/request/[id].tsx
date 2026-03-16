@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBadge } from '@/components/StatusBadge';
 import { getListingById } from '@/constants/userListings';
 import { getUserRequestById } from '@/constants/userRequests';
 
@@ -61,9 +62,7 @@ export default function RequestDetailsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Статус заявки</Text>
           <View style={styles.statusRow}>
-            <View style={[styles.statusBadge, { backgroundColor: request.bg }]}>
-              <Text style={[styles.statusText, { color: request.color }]}>{request.status}</Text>
-            </View>
+            <StatusBadge label={request.status} backgroundColor={request.bg} textColor={request.color} size="md" />
             <Text style={styles.dateText}>{request.date}</Text>
           </View>
           <Text style={styles.noteText}>{request.note}</Text>
@@ -162,14 +161,6 @@ const styles = StyleSheet.create({
   section: { gap: 10 },
   sectionTitle: { fontSize: 18, lineHeight: 27, color: '#3A3A3A', fontWeight: '600' },
   statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  statusBadge: {
-    borderRadius: 999,
-    minHeight: 30,
-    paddingHorizontal: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusText: { fontSize: 13, lineHeight: 20, fontWeight: '600' },
   dateText: { fontSize: 13, lineHeight: 20, color: '#939393' },
   noteText: {
     backgroundColor: '#FFFFFF',

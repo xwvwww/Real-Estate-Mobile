@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBadge } from '@/components/StatusBadge';
 import { getDeveloperProjectById } from '@/constants/developerData';
 import UserMapCard from '@/components/UserMapCard';
 
@@ -25,9 +26,7 @@ export default function DeveloperProjectViewScreen() {
             <View style={styles.card}>
               <Text style={styles.title}>{project.title}</Text>
               <Text style={styles.location}>{project.location}</Text>
-              <View style={[styles.statusPill, { backgroundColor: project.statusBg }]}>
-                <Text style={[styles.statusText, { color: project.statusColor }]}>{project.status}</Text>
-              </View>
+              <StatusBadge label={project.status} backgroundColor={project.statusBg} textColor={project.statusColor} />
             </View>
 
             <View style={styles.card}>
@@ -112,8 +111,6 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, gap: 10 },
   title: { fontSize: 18, lineHeight: 27, fontWeight: '600', color: '#3A3A3A' },
   location: { fontSize: 14, lineHeight: 21, color: '#939393' },
-  statusPill: { alignSelf: 'flex-start', minHeight: 26, borderRadius: 999, paddingHorizontal: 12, justifyContent: 'center' },
-  statusText: { fontSize: 12, lineHeight: 18, fontWeight: '500' },
   sectionTitle: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: '#3A3A3A' },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
   infoLabel: { fontSize: 14, lineHeight: 21, color: '#939393' },

@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBadge } from '@/components/StatusBadge';
 import UserMapCard from '@/components/UserMapCard';
 import { getAgencyListingById } from '@/constants/agencyData';
 
@@ -28,9 +29,7 @@ export default function AgencyListingViewScreen() {
               <Text style={styles.title}>{listing.title}</Text>
               <Text style={styles.subtitle}>{listing.type}</Text>
               <Text style={styles.price}>{listing.price}</Text>
-              <View style={[styles.statusPill, { backgroundColor: listing.statusBg }]}>
-                <Text style={[styles.statusText, { color: listing.statusColor }]}>{listing.status}</Text>
-              </View>
+              <StatusBadge label={listing.status} backgroundColor={listing.statusBg} textColor={listing.statusColor} />
             </View>
 
             <View style={styles.card}>
@@ -104,8 +103,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, lineHeight: 27, fontWeight: '600', color: '#3A3A3A' },
   subtitle: { fontSize: 14, lineHeight: 21, color: '#939393' },
   price: { fontSize: 22, lineHeight: 30, fontWeight: '600', color: '#70A0FF' },
-  statusPill: { alignSelf: 'flex-start', minHeight: 26, borderRadius: 999, paddingHorizontal: 12, justifyContent: 'center' },
-  statusText: { fontSize: 12, lineHeight: 18, fontWeight: '500' },
   sectionTitle: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: '#3A3A3A' },
   description: { fontSize: 14, lineHeight: 22, color: '#5D5D5D' },
   location: { fontSize: 14, lineHeight: 21, color: '#939393' },

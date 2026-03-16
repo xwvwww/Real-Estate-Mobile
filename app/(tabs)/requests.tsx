@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBadge } from '@/components/StatusBadge';
 import { USER_REQUESTS } from '@/constants/userRequests';
 
 export default function UserRequestsScreen() {
@@ -26,9 +27,7 @@ export default function UserRequestsScreen() {
             <Text style={styles.company}>{item.company}</Text>
             <View style={styles.bottomRow}>
               <Text style={styles.date}>{item.date}</Text>
-              <View style={[styles.status, { backgroundColor: item.bg }]}>
-                <Text style={[styles.statusText, { color: item.color }]}>{item.status}</Text>
-              </View>
+              <StatusBadge label={item.status} backgroundColor={item.bg} textColor={item.color} />
             </View>
           </Pressable>
         ))}
@@ -65,6 +64,4 @@ const styles = StyleSheet.create({
   company: { fontSize: 13, lineHeight: 20, color: '#939393' },
   bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   date: { fontSize: 12, lineHeight: 18, color: '#939393' },
-  status: { borderRadius: 999, height: 26, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
-  statusText: { fontSize: 12, lineHeight: 18, fontWeight: '500' },
 });

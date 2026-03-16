@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBadge } from '@/components/StatusBadge';
 import UserMapCard from '@/components/UserMapCard';
 import { getAgencyRequestById } from '@/constants/agencyData';
 
@@ -26,9 +27,7 @@ export default function AgencyRequestViewScreen() {
               <Text style={styles.title}>{request.objectTitle}</Text>
               <Text style={styles.name}>{request.applicantName}</Text>
               <Text style={styles.summary}>{request.summary}</Text>
-              <View style={[styles.statusPill, { backgroundColor: request.status.bgColor }]}>
-                <Text style={[styles.statusText, { color: request.status.textColor }]}>{request.status.label}</Text>
-              </View>
+              <StatusBadge label={request.status.label} backgroundColor={request.status.bgColor} textColor={request.status.textColor} />
             </View>
 
             <View style={styles.card}>
@@ -91,8 +90,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, lineHeight: 27, fontWeight: '600', color: '#3A3A3A' },
   name: { fontSize: 15, lineHeight: 23, color: '#3A3A3A' },
   summary: { fontSize: 14, lineHeight: 21, color: '#939393' },
-  statusPill: { alignSelf: 'flex-start', minHeight: 26, borderRadius: 999, paddingHorizontal: 12, justifyContent: 'center' },
-  statusText: { fontSize: 12, lineHeight: 18, fontWeight: '500' },
   sectionTitle: { fontSize: 16, lineHeight: 24, fontWeight: '600', color: '#3A3A3A' },
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
   infoLabel: { fontSize: 14, lineHeight: 21, color: '#939393' },

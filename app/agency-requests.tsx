@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AgencyBottomBar } from '@/components/AgencyBottomBar';
+import { StatusBadge } from '@/components/StatusBadge';
 import { AGENCY_REQUESTS } from '@/constants/agencyData';
 
 export default function AgencyRequestsScreen() {
@@ -28,9 +29,7 @@ export default function AgencyRequestsScreen() {
             <Text style={styles.summary}>{item.summary}</Text>
 
             <View style={styles.bottomRow}>
-              <View style={[styles.statusPill, { backgroundColor: item.status.bgColor }]}>
-                <Text style={[styles.statusText, { color: item.status.textColor }]}>{item.status.label}</Text>
-              </View>
+              <StatusBadge label={item.status.label} backgroundColor={item.status.bgColor} textColor={item.status.textColor} />
               <Ionicons name="chevron-forward" size={18} color="#B6B6B6" />
             </View>
           </Pressable>
@@ -107,17 +106,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  statusPill: {
-    height: 26,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusText: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '500',
   },
 });

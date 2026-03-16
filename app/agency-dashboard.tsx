@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AgencyBottomBar } from '@/components/AgencyBottomBar';
+import { StatusBadge } from '@/components/StatusBadge';
 import { AGENCY_LISTINGS } from '@/constants/agencyData';
 
 type MetricItem = {
@@ -110,9 +111,7 @@ export default function AgencyDashboardScreen() {
                 <Text style={styles.listingType}>{listing.type}</Text>
 
                 <View style={styles.listingMetaRow}>
-                  <View style={[styles.statusPill, { backgroundColor: listing.statusBg }]}>
-                    <Text style={[styles.statusText, { color: listing.statusColor }]}>{listing.status}</Text>
-                  </View>
+                  <StatusBadge label={listing.status} backgroundColor={listing.statusBg} textColor={listing.statusColor} />
                   <Text style={styles.listingDate}>{listing.date}</Text>
                 </View>
               </View>

@@ -6,13 +6,13 @@ import {
   Animated,
   Modal,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import UserMapCard, { type MapRegion, type UserMapMarker } from '@/components/UserMapCard';
 import { USER_LISTINGS, type UserListing } from '@/constants/userListings';
 import { toggleFavorite, useIsFavorite } from '@/stores/favoritesStore';

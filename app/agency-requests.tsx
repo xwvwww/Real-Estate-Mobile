@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AgencyBottomBar } from '@/components/AgencyBottomBar';
 import { StatusBadge } from '@/components/StatusBadge';
 import { AGENCY_REQUESTS } from '@/constants/agencyData';
+import { CARD_RADIUS, LIGHT_CARD_SHADOW } from '@/constants/ui';
 
 export default function AgencyRequestsScreen() {
   const router = useRouter();
@@ -73,15 +74,11 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: CARD_RADIUS,
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 16,
-    shadowColor: '#000000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    elevation: 1,
+    ...LIGHT_CARD_SHADOW,
   },
   objectTitle: {
     fontSize: 15,

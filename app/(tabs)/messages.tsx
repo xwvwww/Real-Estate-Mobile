@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CARD_RADIUS, ELEVATED_CARD_SHADOW } from '@/constants/ui';
 import { USER_CHATS } from '@/constants/userMessages';
 
 export default function UserMessagesScreen() {
@@ -50,16 +51,12 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, lineHeight: 28, fontWeight: '600', color: '#3A3A3A' },
   content: { padding: 16, gap: 12, paddingBottom: 24 },
   card: {
-    borderRadius: 14,
+    borderRadius: CARD_RADIUS,
     backgroundColor: '#FFFFFF',
     padding: 16,
     flexDirection: 'row',
     gap: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 2,
+    ...ELEVATED_CARD_SHADOW,
   },
   avatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#70A0FF', alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#FFFFFF', fontWeight: '600', fontSize: 16, lineHeight: 24 },

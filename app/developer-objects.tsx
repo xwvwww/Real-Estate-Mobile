@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DEVELOPER_OBJECTS } from '@/constants/developerData';
+import { CARD_RADIUS, ELEVATED_CARD_SHADOW } from '@/constants/ui';
 
 export default function DeveloperObjectsScreen() {
   const router = useRouter();
@@ -100,10 +101,11 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: CARD_RADIUS,
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 16,
+    ...ELEVATED_CARD_SHADOW,
   },
   title: {
     fontSize: 16,
@@ -122,17 +124,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  statusPill: {
-    minHeight: 26,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    justifyContent: 'center',
-  },
-  statusText: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '500',
   },
   viewsWrap: {
     flexDirection: 'row',

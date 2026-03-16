@@ -250,17 +250,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  statusPill: {
-    minHeight: 26,
-    borderRadius: 999,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '500',
-  },
   listingDate: {
     fontSize: 12,
     lineHeight: 18,

@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBadge } from '@/components/StatusBadge';
+import { CARD_RADIUS, ELEVATED_CARD_SHADOW } from '@/constants/ui';
 import { USER_REQUESTS } from '@/constants/userRequests';
 
 export default function UserRequestsScreen() {
@@ -49,15 +50,11 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, lineHeight: 28, fontWeight: '600', color: '#3A3A3A' },
   content: { padding: 16, gap: 12, paddingBottom: 24 },
   card: {
-    borderRadius: 14,
+    borderRadius: CARD_RADIUS,
     backgroundColor: '#FFFFFF',
     padding: 16,
     gap: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 2,
+    ...ELEVATED_CARD_SHADOW,
   },
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontSize: 15, lineHeight: 23, color: '#3A3A3A', fontWeight: '600' },

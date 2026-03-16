@@ -246,17 +246,4 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#3A3A3A',
   },
-  statusPill: {
-    marginTop: 10,
-    alignSelf: 'flex-start',
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    minHeight: 26,
-    justifyContent: 'center',
-  },
-  statusText: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '500',
-  },
 });

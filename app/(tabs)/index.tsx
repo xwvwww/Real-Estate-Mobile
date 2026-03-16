@@ -277,14 +277,6 @@ const styles = StyleSheet.create({
   requestAgency: { fontSize: 13, lineHeight: 20, color: '#939393' },
   requestBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   requestDate: { fontSize: 12, lineHeight: 18, color: '#939393' },
-  statusPill: {
-    paddingHorizontal: 12,
-    height: 26,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusText: { fontSize: 12, lineHeight: 18, fontWeight: '500' },
   transitionOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#111827',

@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CARD_RADIUS, ELEVATED_CARD_SHADOW } from '@/constants/ui';
 import { USER_LISTINGS } from '@/constants/userListings';
 import { useFavoriteIds } from '@/stores/favoritesStore';
 
@@ -77,10 +78,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyBox: {
-    borderRadius: 14,
+    borderRadius: CARD_RADIUS,
     backgroundColor: '#FFFFFF',
     padding: 16,
     gap: 4,
+    ...ELEVATED_CARD_SHADOW,
   },
   emptyTitle: {
     fontSize: 16,
@@ -94,14 +96,10 @@ const styles = StyleSheet.create({
     color: '#939393',
   },
   card: {
-    borderRadius: 14,
+    borderRadius: CARD_RADIUS,
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
-    shadowColor: '#000000',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 2,
+    ...ELEVATED_CARD_SHADOW,
   },
   image: {
     width: '100%',

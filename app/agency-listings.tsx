@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AgencyBottomBar } from '@/components/AgencyBottomBar';
 import { StatusBadge } from '@/components/StatusBadge';
 import { AGENCY_LISTINGS } from '@/constants/agencyData';
+import { CARD_RADIUS, LIGHT_CARD_SHADOW } from '@/constants/ui';
 
 export default function AgencyListingsScreen() {
   const router = useRouter();
@@ -108,13 +109,9 @@ const styles = StyleSheet.create({
   },
   listingCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: CARD_RADIUS,
     overflow: 'hidden',
-    shadowColor: '#000000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    elevation: 1,
+    ...LIGHT_CARD_SHADOW,
   },
   listingImage: {
     width: '100%',
@@ -142,17 +139,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  statusPill: {
-    minHeight: 26,
-    borderRadius: 999,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '500',
   },
   listingDate: {
     fontSize: 12,

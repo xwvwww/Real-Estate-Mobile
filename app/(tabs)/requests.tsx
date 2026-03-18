@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { EmptyState } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/StatusBadge';
 import { CARD_RADIUS, ELEVATED_CARD_SHADOW } from '@/constants/ui';
 import { USER_REQUESTS } from '@/constants/userRequests';
@@ -16,6 +17,10 @@ export default function UserRequestsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {USER_REQUESTS.length === 0 ? (
+          <EmptyState icon="document-text-outline" title="Пока нет заявок" description="Ваши отправленные заявки на объекты будут показаны здесь" />
+        ) : null}
+
         {USER_REQUESTS.map((item) => (
           <Pressable
             key={item.id}

@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
+import { EmptyState } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DEVELOPER_REQUESTS } from '@/constants/developerData';
 import { CARD_RADIUS, ELEVATED_CARD_SHADOW } from '@/constants/ui';
@@ -25,6 +26,10 @@ export default function DeveloperRequestsScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never">
+        {DEVELOPER_REQUESTS.length === 0 ? (
+          <EmptyState icon="mail-unread-outline" title="Пока нет заявок" description="Заявки от пользователей появятся здесь" />
+        ) : null}
+
         {DEVELOPER_REQUESTS.map((request) => (
           <Pressable
             key={request.id}

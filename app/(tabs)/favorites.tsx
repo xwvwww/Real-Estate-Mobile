@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { EmptyState } from '@/components/EmptyState';
 import { CARD_RADIUS, ELEVATED_CARD_SHADOW } from '@/constants/ui';
 import { USER_LISTINGS } from '@/constants/userListings';
 import { useFavoriteIds } from '@/stores/favoritesStore';
@@ -25,10 +26,11 @@ export default function FavoritesScreen() {
         alwaysBounceVertical={false}
         overScrollMode="never">
         {favoriteItems.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Text style={styles.emptyTitle}>Пока нет избранных объектов</Text>
-            <Text style={styles.emptyText}>Добавьте объекты в избранное из каталога или карточки объекта</Text>
-          </View>
+          <EmptyState
+            icon="heart-outline"
+            title="Пока нет избранных объектов"
+            description="Добавьте объекты в избранное из каталога или карточки объекта"
+          />
         ) : null}
 
         {favoriteItems.map((item) => (
@@ -76,24 +78,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 24,
     gap: 12,
-  },
-  emptyBox: {
-    borderRadius: CARD_RADIUS,
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    gap: 4,
-    ...ELEVATED_CARD_SHADOW,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600',
-    color: '#3A3A3A',
-  },
-  emptyText: {
-    fontSize: 13,
-    lineHeight: 20,
-    color: '#939393',
   },
   card: {
     borderRadius: CARD_RADIUS,

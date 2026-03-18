@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
+import { EmptyState } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DEVELOPER_OBJECTS } from '@/constants/developerData';
 import { CARD_RADIUS, ELEVATED_CARD_SHADOW } from '@/constants/ui';
@@ -26,6 +27,10 @@ export default function DeveloperObjectsScreen() {
           showsVerticalScrollIndicator={false}
           bounces={false}
           overScrollMode="never">
+          {DEVELOPER_OBJECTS.length === 0 ? (
+            <EmptyState icon="home-outline" title="Пока нет объектов" description="Добавленные объекты будут отображаться в этом разделе" />
+          ) : null}
+
           {DEVELOPER_OBJECTS.map((item) => (
             <Pressable
               key={item.id}

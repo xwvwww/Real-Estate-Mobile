@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AgencyBottomBar } from '@/components/AgencyBottomBar';
+import { EmptyState } from '@/components/EmptyState';
 import { AGENCY_MESSAGES } from '@/constants/agencyData';
 
 export default function AgencyMessagesScreen() {
@@ -20,6 +21,10 @@ export default function AgencyMessagesScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never">
+        {AGENCY_MESSAGES.length === 0 ? (
+          <EmptyState icon="chatbubbles-outline" title="Пока нет сообщений" description="Диалоги с клиентами будут отображаться в этом разделе" />
+        ) : null}
+
         {AGENCY_MESSAGES.map((item) => (
           <Pressable key={item.id} style={styles.card} onPress={() => router.push(`/agency-message/${item.id}` as any)}>
             <View style={styles.avatar}>

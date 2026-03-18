@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
+import { EmptyState } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/StatusBadge';
 import { DEVELOPER_PROJECTS } from '@/constants/developerData';
 import { CARD_RADIUS, ELEVATED_CARD_SHADOW } from '@/constants/ui';
@@ -26,6 +27,10 @@ export default function DeveloperProjectsScreen() {
           showsVerticalScrollIndicator={false}
           bounces={false}
           overScrollMode="never">
+          {DEVELOPER_PROJECTS.length === 0 ? (
+            <EmptyState icon="business-outline" title="Пока нет проектов" description="Создайте первый проект, чтобы он появился в этом разделе" />
+          ) : null}
+
           {DEVELOPER_PROJECTS.map((project) => (
             <Pressable
               key={project.id}

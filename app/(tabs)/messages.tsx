@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { EmptyState } from '@/components/EmptyState';
 import { CARD_RADIUS, ELEVATED_CARD_SHADOW } from '@/constants/ui';
 import { USER_CHATS } from '@/constants/userMessages';
 
@@ -14,6 +15,10 @@ export default function UserMessagesScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {USER_CHATS.length === 0 ? (
+          <EmptyState icon="chatbubbles-outline" title="Пока нет сообщений" description="Когда появятся диалоги по заявкам, они будут здесь" />
+        ) : null}
+
         {USER_CHATS.map((chat) => (
           <Pressable
             key={chat.id}

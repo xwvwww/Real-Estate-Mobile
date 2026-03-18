@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AgencyBottomBar } from '@/components/AgencyBottomBar';
+import { EmptyState } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/StatusBadge';
 import { AGENCY_REQUESTS } from '@/constants/agencyData';
 import { CARD_RADIUS, LIGHT_CARD_SHADOW } from '@/constants/ui';
@@ -23,6 +24,10 @@ export default function AgencyRequestsScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never">
+        {AGENCY_REQUESTS.length === 0 ? (
+          <EmptyState icon="document-text-outline" title="Пока нет заявок" description="Когда пользователи начнут откликаться, заявки появятся здесь" />
+        ) : null}
+
         {AGENCY_REQUESTS.map((item) => (
           <Pressable key={item.id} style={styles.card} onPress={() => router.push(`/agency-request-view/${item.id}` as any)}>
             <Text style={styles.objectTitle}>{item.objectTitle}</Text>

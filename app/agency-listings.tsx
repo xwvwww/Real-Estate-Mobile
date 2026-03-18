@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AgencyBottomBar } from '@/components/AgencyBottomBar';
+import { EmptyState } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/StatusBadge';
 import { AGENCY_LISTINGS } from '@/constants/agencyData';
 import { CARD_RADIUS, LIGHT_CARD_SHADOW } from '@/constants/ui';
@@ -28,6 +29,10 @@ export default function AgencyListingsScreen() {
         bounces={false}
       overScrollMode="never">
         <View style={styles.listingList}>
+          {AGENCY_LISTINGS.length === 0 ? (
+            <EmptyState icon="newspaper-outline" title="Пока нет объявлений" description="Создайте первое объявление, чтобы оно появилось в списке" />
+          ) : null}
+
           {AGENCY_LISTINGS.map((listing) => (
             <Pressable key={listing.id} style={styles.listingCard} onPress={() => router.push(`/agency-listing-view/${listing.id}` as any)}>
               <Image source={listing.image} contentFit="cover" style={styles.listingImage} />

@@ -13,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AppDropdown from '@/components/AppDropdown';
 import UserMapCard, { type MapRegion, type UserMapMarker } from '@/components/UserMapCard';
 import { USER_LISTINGS, type UserListing } from '@/constants/userListings';
 import { toggleFavorite, useIsFavorite } from '@/stores/favoritesStore';
@@ -327,57 +328,22 @@ export default function UserCatalogScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalContent}>
               <Text style={styles.filterLabel}>Город</Text>
-              <View style={styles.dropdownWrap}>
-                <Pressable
-                  style={[styles.filterInput, styles.dropdownTrigger]}
-                  onPress={() => setCityDropdownVisible((prev) => !prev)}>
-                  <Text style={city ? styles.dropdownValue : styles.dropdownPlaceholder}>
-                    {city || 'Выберите город'}
-                  </Text>
-                  <Ionicons
-                    name={cityDropdownVisible ? 'chevron-up' : 'chevron-down'}
-                    size={18}
-                    color="#737373"
-                  />
-                </Pressable>
-
-                {cityDropdownVisible ? (
-                  <View style={styles.dropdownMenu}>
-                    <ScrollView nestedScrollEnabled style={styles.dropdownScroll} showsVerticalScrollIndicator={false}>
-                      <Pressable
-                        style={[styles.dropdownItem, !city && styles.dropdownItemActive]}
-                        onPress={() => {
-                          setCity('');
-                          setCityDropdownVisible(false);
-                        }}>
-                        <Text style={[styles.dropdownItemText, !city && styles.dropdownItemTextActive]}>
-                          Все города
-                        </Text>
-                        {!city ? <Ionicons name="checkmark" size={18} color="#70A0FF" /> : null}
-                      </Pressable>
-
-                      {cityOptions.map((option) => (
-                        <Pressable
-                          key={option}
-                          style={[styles.dropdownItem, city === option && styles.dropdownItemActive]}
-                          onPress={() => {
-                            setCity(option);
-                            setCityDropdownVisible(false);
-                          }}>
-                          <Text
-                            style={[
-                              styles.dropdownItemText,
-                              city === option && styles.dropdownItemTextActive,
-                            ]}>
-                            {option}
-                          </Text>
-                          {city === option ? <Ionicons name="checkmark" size={18} color="#70A0FF" /> : null}
-                        </Pressable>
-                      ))}
-                    </ScrollView>
-                  </View>
-                ) : null}
-              </View>
+              <AppDropdown
+                value={city}
+                placeholder="Выберите город"
+                open={cityDropdownVisible}
+                maxMenuHeight={220}
+                options={[
+                  { label: 'Все города', value: '' },
+                  ...cityOptions.map((option) => ({ label: option, value: option })),
+                ]}
+                onToggle={() => setCityDropdownVisible((prev) => !prev)}
+                onSelect={(value) => {
+                  setCity(value);
+                  setCityDropdownVisible(false);
+                }}
+                triggerStyle={styles.filterInput}
+              />
 
               <Text style={styles.filterLabel}>Тип недвижимости</Text>
               <View style={styles.typeRow}>
@@ -559,63 +525,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     color: '#3A3A3A',
     fontSize: 15,
-  },
-  dropdownTrigger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  dropdownWrap: {
-    position: 'relative',
-    zIndex: 10,
-  },
-  dropdownValue: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#3A3A3A',
-  },
-  dropdownPlaceholder: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#939393',
-  },
-  dropdownMenu: {
-    marginTop: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-    shadowColor: '#101828',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    elevation: 8,
-  },
-  dropdownScroll: {
-    maxHeight: 220,
-  },
-  dropdownItem: {
-    minHeight: 44,
-    paddingHorizontal: 12,
-    paddingRight: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  dropdownItemActive: {
-    backgroundColor: '#F0F7FF',
-  },
-  dropdownItemText: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: '#3A3A3A',
-  },
-  dropdownItemTextActive: {
-    color: '#70A0FF',
-    fontWeight: '600',
   },
   typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   typeChip: {

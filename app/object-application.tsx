@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AppDropdown from '@/components/AppDropdown';
 import AppCheckbox from '@/components/AppCheckbox';
 import { getListingById } from '@/constants/userListings';
 
@@ -136,27 +137,18 @@ export default function ObjectApplicationScreen() {
           />
 
           <Text style={styles.fieldLabel}>На какой срок планируется аренда? *</Text>
-          <View style={styles.dropdownWrap}>
-            <Pressable style={styles.selectInput} onPress={() => setLeaseOpen((v) => !v)}>
-              <Text style={styles.inputValue}>{leaseTerm}</Text>
-              <Ionicons name={leaseOpen ? 'chevron-up' : 'chevron-down'} size={18} color="#737373" />
-            </Pressable>
-            {leaseOpen ? (
-              <View style={styles.dropdownMenu}>
-                {LEASE_TERMS.map((item) => (
-                  <Pressable
-                    key={item}
-                    style={styles.dropdownItem}
-                    onPress={() => {
-                      setLeaseTerm(item);
-                      setLeaseOpen(false);
-                    }}>
-                    <Text style={styles.dropdownItemText}>{item}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
-          </View>
+          <AppDropdown
+            value={leaseTerm}
+            placeholder="Выберите срок"
+            open={leaseOpen}
+            options={LEASE_TERMS.map((item) => ({ label: item, value: item }))}
+            onToggle={() => setLeaseOpen((v) => !v)}
+            onSelect={(value) => {
+              setLeaseTerm(value);
+              setLeaseOpen(false);
+            }}
+            triggerStyle={styles.selectInput}
+          />
         </View>
 
         <View style={styles.section}>
@@ -262,15 +254,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#3A3A3A',
   },
-  inputValue: { flex: 1, fontSize: 16, color: '#3A3A3A' },
   selectInput: {
-    height: 48,
-    borderRadius: 10,
-    backgroundColor: '#F8F8F8',
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    borderWidth: 0,
   },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   checkLabel: { fontSize: 15, lineHeight: 22, color: '#3A3A3A', fontWeight: '500' },
@@ -286,17 +271,6 @@ const styles = StyleSheet.create({
   genderBtnActive: { backgroundColor: '#70A0FF' },
   genderBtnText: { fontSize: 14, lineHeight: 21, color: '#3A3A3A', fontWeight: '500' },
   genderBtnTextActive: { color: '#FFFFFF' },
-  dropdownWrap: { position: 'relative' },
-  dropdownMenu: {
-    marginTop: 6,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-    overflow: 'hidden',
-  },
-  dropdownItem: { height: 44, justifyContent: 'center', paddingHorizontal: 14 },
-  dropdownItemText: { fontSize: 14, lineHeight: 21, color: '#3A3A3A' },
   textArea: {
     height: 136,
     borderRadius: 10,

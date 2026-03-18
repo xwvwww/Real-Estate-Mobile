@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AppDropdown from '@/components/AppDropdown';
 
 type MapRegion = {
   latitude: number;
@@ -110,30 +111,20 @@ export default function AgencyCreateListingStep2Screen() {
 
           <View style={styles.fieldWrap}>
             <Text style={styles.fieldLabel}>Город*</Text>
-            <View style={styles.dropdownWrap}>
-              <Pressable style={styles.dropdown} onPress={() => setCityOpen((prev) => !prev)}>
-                <Text style={[styles.dropdownText, !city && styles.dropdownPlaceholder]}>
-                  {city || 'Выберите город'}
-                </Text>
-                <Ionicons name={cityOpen ? 'chevron-up' : 'chevron-down'} size={18} color="#939393" />
-              </Pressable>
-
-              {cityOpen ? (
-                <View style={styles.dropdownMenu}>
-                  {CITY_OPTIONS.map((option, index) => (
-                    <Pressable
-                      key={option.label}
-                      style={[styles.dropdownItem, index === CITY_OPTIONS.length - 1 && styles.dropdownItemLast]}
-                      onPress={() => onSelectCity(option)}>
-                      <Text style={[styles.dropdownItemText, city === option.label && styles.dropdownItemTextActive]}>
-                        {option.label}
-                      </Text>
-                      {city === option.label ? <Ionicons name="checkmark" size={16} color="#70A0FF" /> : null}
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
-            </View>
+            <AppDropdown
+              value={city}
+              placeholder="Выберите город"
+              open={cityOpen}
+              options={CITY_OPTIONS.map((option) => ({ label: option.label, value: option.label }))}
+              onToggle={() => setCityOpen((prev) => !prev)}
+              onSelect={(value) => {
+                const option = CITY_OPTIONS.find((item) => item.label === value);
+                if (option) {
+                  onSelectCity(option);
+                }
+              }}
+              triggerStyle={styles.dropdown}
+            />
           </View>
 
           <View style={styles.fieldWrap}>
@@ -287,63 +278,8 @@ const styles = StyleSheet.create({
     color: '#3A3A3A',
     fontWeight: '500',
   },
-  dropdownWrap: {
-    position: 'relative',
-    zIndex: 10,
-  },
   dropdown: {
-    height: 48,
-    borderRadius: 10,
-    backgroundColor: '#F8F8F8',
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  dropdownText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#3A3A3A',
-  },
-  dropdownPlaceholder: {
-    color: '#939393',
-  },
-  dropdownMenu: {
-    position: 'absolute',
-    top: 52,
-    left: 0,
-    right: 0,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-    overflow: 'hidden',
-    shadowColor: '#101828',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    elevation: 8,
-  },
-  dropdownItem: {
-    minHeight: 44,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  dropdownItemLast: {
-    borderBottomWidth: 0,
-  },
-  dropdownItemText: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: '#3A3A3A',
-  },
-  dropdownItemTextActive: {
-    color: '#70A0FF',
-    fontWeight: '600',
+    borderWidth: 0,
   },
   input: {
     height: 48,

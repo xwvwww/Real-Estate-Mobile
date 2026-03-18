@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { EmptyState } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/StatusBadge';
 import { getListingById } from '@/constants/userListings';
 import { getUserRequestById } from '@/constants/userRequests';
@@ -25,10 +26,13 @@ export default function RequestDetailsScreen() {
           <View style={styles.headerBtn} />
         </View>
         <View style={styles.emptyWrap}>
-          <Text style={styles.emptyTitle}>Заявка не найдена</Text>
-          <Pressable style={styles.primaryBtn} onPress={() => router.replace('/(tabs)/requests')}>
-            <Text style={styles.primaryBtnText}>Вернуться к заявкам</Text>
-          </Pressable>
+          <EmptyState
+            icon="document-text-outline"
+            title="Заявка не найдена"
+            description="Откройте список заявок и выберите актуальную заявку"
+            actionLabel="Вернуться к заявкам"
+            onAction={() => router.replace('/(tabs)/requests')}
+          />
         </View>
       </SafeAreaView>
     );
@@ -213,10 +217,7 @@ const styles = StyleSheet.create({
   secondaryBtnText: { fontSize: 15, lineHeight: 22, color: '#70A0FF', fontWeight: '600' },
   emptyWrap: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
-    gap: 16,
+    padding: 16,
   },
-  emptyTitle: { fontSize: 18, lineHeight: 27, color: '#3A3A3A', fontWeight: '600' },
 });

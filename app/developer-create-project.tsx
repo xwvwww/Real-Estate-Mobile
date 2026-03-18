@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { EmptyState } from '@/components/EmptyState';
 
 type MapRegion = {
   latitude: number;
@@ -149,8 +150,13 @@ export default function DeveloperCreateProjectScreen() {
                 </MapView>
               ) : (
                 <View style={styles.mapFallback}>
-                  <Ionicons name="map-outline" size={36} color="#939393" />
-                  <Text style={styles.mapHint}>Не удалось загрузить карту</Text>
+                  <EmptyState
+                    icon="map-outline"
+                    title="Карта недоступна"
+                    description="Проверьте, что модуль карты подключен корректно"
+                    elevated={false}
+                    style={styles.mapFallbackCard}
+                  />
                 </View>
               )}
 
@@ -293,6 +299,11 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 12,
+  },
+  mapFallbackCard: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.94)',
   },
   mapControls: {
     position: 'absolute',

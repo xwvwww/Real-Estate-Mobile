@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { EmptyState } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/StatusBadge';
 import UserMapCard from '@/components/UserMapCard';
 import { getAgencyListingById } from '@/constants/agencyData';
@@ -71,7 +72,13 @@ export default function AgencyListingViewScreen() {
             </Pressable>
           </>
         ) : (
-          <Text style={styles.empty}>Объявление не найдено</Text>
+          <EmptyState
+            icon="newspaper-outline"
+            title="Объявление не найдено"
+            description="Вернитесь к списку объявлений и выберите существующую карточку"
+            actionLabel="К объявлениям"
+            onAction={() => router.replace('/agency-listings')}
+          />
         )}
       </ScrollView>
     </SafeAreaView>
@@ -109,5 +116,4 @@ const styles = StyleSheet.create({
   mapWrap: { marginTop: 4 },
   editButton: { height: 48, borderRadius: 12, backgroundColor: '#70A0FF', alignItems: 'center', justifyContent: 'center' },
   editButtonText: { fontSize: 15, lineHeight: 22, color: '#FFFFFF', fontWeight: '600' },
-  empty: { padding: 16, fontSize: 16, lineHeight: 24, color: '#3A3A3A' },
 });

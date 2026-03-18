@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { EmptyState } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/StatusBadge';
 import { getDeveloperRequestById } from '@/constants/developerData';
 import UserMapCard from '@/components/UserMapCard';
@@ -76,7 +77,13 @@ export default function DeveloperRequestViewScreen() {
             </View>
           </>
         ) : (
-          <Text style={styles.empty}>Заявка не найдена</Text>
+          <EmptyState
+            icon="mail-unread-outline"
+            title="Заявка не найдена"
+            description="Вернитесь в список заявок и откройте существующую запись"
+            actionLabel="К заявкам"
+            onAction={() => router.replace('/developer-requests')}
+          />
         )}
       </ScrollView>
     </SafeAreaView>
@@ -129,5 +136,4 @@ const styles = StyleSheet.create({
   primaryBtnText: { fontSize: 15, lineHeight: 22, color: '#FFFFFF', fontWeight: '600' },
   secondaryBtn: { flex: 1, height: 48, borderRadius: 12, backgroundColor: '#FFF1F1', alignItems: 'center', justifyContent: 'center' },
   secondaryBtnText: { fontSize: 15, lineHeight: 22, color: '#E05A5A', fontWeight: '600' },
-  empty: { fontSize: 16, lineHeight: 24, color: '#3A3A3A' },
 });

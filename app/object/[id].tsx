@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { EmptyState } from '@/components/EmptyState';
 import UserMapCard from '@/components/UserMapCard';
 import { getListingById } from '@/constants/userListings';
 import { toggleFavorite, useIsFavorite } from '@/stores/favoritesStore';
@@ -19,10 +20,13 @@ export default function ObjectDetailsScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.emptyWrap}>
-          <Text style={styles.emptyTitle}>Объект не найден</Text>
-          <Pressable style={styles.emptyButton} onPress={() => router.back()}>
-            <Text style={styles.emptyButtonText}>Назад</Text>
-          </Pressable>
+          <EmptyState
+            icon="home-outline"
+            title="Объект не найден"
+            description="Вернитесь назад и выберите объявление из списка"
+            actionLabel="Вернуться назад"
+            onAction={() => router.back()}
+          />
         </View>
       </SafeAreaView>
     );
@@ -165,17 +169,7 @@ export default function ObjectDetailsScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
-  emptyWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  emptyTitle: { fontSize: 18, lineHeight: 27, fontWeight: '600', color: '#3A3A3A' },
-  emptyButton: {
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: '#70A0FF',
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyButtonText: { color: '#FFFFFF', fontSize: 15, lineHeight: 22, fontWeight: '500' },
+  emptyWrap: { flex: 1, justifyContent: 'center', padding: 16 },
   heroWrap: { height: 280, position: 'relative', backgroundColor: '#111' },
   heroImage: { ...StyleSheet.absoluteFillObject },
   topLeftBtn: {

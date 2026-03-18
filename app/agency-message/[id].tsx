@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { EmptyState } from '@/components/EmptyState';
 import { getAgencyMessageById } from '@/constants/agencyData';
 
 export default function AgencyMessageViewScreen() {
@@ -43,7 +44,13 @@ export default function AgencyMessageViewScreen() {
         </>
       ) : (
         <View style={styles.emptyWrap}>
-          <Text style={styles.empty}>Диалог не найден</Text>
+          <EmptyState
+            icon="chatbubbles-outline"
+            title="Диалог не найден"
+            description="Вернитесь к сообщениям агентства и выберите активный чат"
+            actionLabel="К сообщениям"
+            onAction={() => router.replace('/agency-messages')}
+          />
         </View>
       )}
     </SafeAreaView>
@@ -69,6 +76,5 @@ const styles = StyleSheet.create({
   composer: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', gap: 10, padding: 16, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: '#E8E8E8' },
   input: { flex: 1, height: 48, borderRadius: 12, backgroundColor: '#F8F8F8', paddingHorizontal: 16, fontSize: 15, color: '#3A3A3A' },
   sendButton: { width: 48, height: 48, borderRadius: 12, backgroundColor: '#70A0FF', alignItems: 'center', justifyContent: 'center' },
-  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  empty: { fontSize: 16, lineHeight: 24, color: '#3A3A3A' },
+  emptyWrap: { flex: 1, justifyContent: 'center', padding: 16 },
 });

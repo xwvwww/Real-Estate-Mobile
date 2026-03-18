@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { EmptyState } from '@/components/EmptyState';
 import { getListingById } from '@/constants/userListings';
 import { getUserChatById } from '@/constants/userMessages';
 
@@ -35,7 +36,13 @@ export default function MessageDetailsScreen() {
           <View style={styles.headerBtn} />
         </View>
         <View style={styles.emptyWrap}>
-          <Text style={styles.emptyTitle}>Диалог не найден</Text>
+          <EmptyState
+            icon="chatbubbles-outline"
+            title="Диалог не найден"
+            description="Вернитесь к сообщениям и откройте существующий чат"
+            actionLabel="К списку сообщений"
+            onAction={() => router.replace('/(tabs)/messages')}
+          />
         </View>
       </SafeAreaView>
     );
@@ -191,6 +198,5 @@ const styles = StyleSheet.create({
   sendBtnDisabled: {
     opacity: 0.45,
   },
-  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  emptyTitle: { fontSize: 18, lineHeight: 27, color: '#3A3A3A', fontWeight: '600' },
+  emptyWrap: { flex: 1, justifyContent: 'center', padding: 16 },
 });

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { EmptyState } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/StatusBadge';
 import { getDeveloperProjectById } from '@/constants/developerData';
 import UserMapCard from '@/components/UserMapCard';
@@ -71,7 +72,13 @@ export default function DeveloperProjectViewScreen() {
             </View>
           </>
         ) : (
-          <Text style={styles.empty}>Проект не найден</Text>
+          <EmptyState
+            icon="business-outline"
+            title="Проект не найден"
+            description="Вернитесь к списку проектов и выберите существующий проект"
+            actionLabel="К проектам"
+            onAction={() => router.replace('/developer-projects')}
+          />
         )}
       </ScrollView>
     </SafeAreaView>
@@ -118,5 +125,4 @@ const styles = StyleSheet.create({
   description: { fontSize: 14, lineHeight: 22, color: '#5D5D5D' },
   locationText: { fontSize: 14, lineHeight: 21, color: '#939393' },
   mapWrap: { marginTop: 4 },
-  empty: { fontSize: 16, lineHeight: 24, color: '#3A3A3A' },
 });

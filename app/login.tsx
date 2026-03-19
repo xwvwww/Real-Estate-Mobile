@@ -14,27 +14,42 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import LoginPageIcon from '@/assets/images/LoginPageIcon.svg';
-import { findMockAccount, MOCK_ACCOUNTS_HINT } from '@/constants/mockAuth';
+import { useAuth } from '@/contexts/AuthContext';
+import { loginWithPassword } from '@/lib/api';
+import { getDashboardRoute } from '@/lib/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const canLogin = email.trim().length > 0 && password.trim().length > 0;
 
-  const onLogin = () => {
-    const account = findMockAccount(email, password);
-
-    if (account) {
-      router.replace(account.route);
+  const onLogin = async () => {
+    if (!canLogin || isSubmitting) {
       return;
     }
 
-    Alert.alert(
-      'Неверные данные',
-      `Тестовые аккаунты: ${MOCK_ACCOUNTS_HINT}`
-    );
+    try {
+      setIsSubmitting(true);
+
+      const session = await loginWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      await signIn(session);
+      router.replace(getDashboardRoute(session.user.role.name));
+    } catch (error) {
+      Alert.alert(
+        'Не удалось войти',
+        error instanceof Error ? error.message : 'Проверьте email и пароль и попробуйте снова.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -90,12 +105,19 @@ export default function LoginScreen() {
           </Link>
 
           <Pressable
-            style={[styles.primaryButton, !canLogin && styles.primaryButtonDisabled]}
-            disabled={!canLogin}
+            style={[
+              styles.primaryButton,
+              (!canLogin || isSubmitting) && styles.primaryButtonDisabled,
+            ]}
+            disabled={!canLogin || isSubmitting}
             onPress={onLogin}
           >
-            <Text style={[styles.primaryButtonText, !canLogin && styles.primaryButtonTextDisabled]}>
-              Войти
+            <Text
+              style={[
+                styles.primaryButtonText,
+                (!canLogin || isSubmitting) && styles.primaryButtonTextDisabled,
+              ]}>
+              {isSubmitting ? 'Входим...' : 'Войти'}
             </Text>
           </Pressable>
 

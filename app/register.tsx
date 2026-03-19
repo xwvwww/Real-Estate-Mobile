@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
+  Alert,
   Animated,
   Easing,
   Pressable,
@@ -14,12 +15,35 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import AppCheckbox from '@/components/AppCheckbox';
+import { registerCompany, registerUser } from '@/lib/api';
 
 import RegisterPageIconFirst from '@/assets/images/RegisterPageIconFirst.svg';
 import RegisterPageIconSecond from '@/assets/images/RegisterPageIconSecond.svg';
 import RegisterPageIconThird from '@/assets/images/RegisterPageIconThird.svg';
 
 type Role = 'user' | 'agency' | 'developer';
+
+type UserForm = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  password: string;
+  passwordConfirmation: string;
+};
+
+type CompanyForm = {
+  companyName: string;
+  registrationNumber: string;
+  city: string;
+  companyEmail: string;
+  companyPhone: string;
+  firstName: string;
+  lastName: string;
+  jobTitle: string;
+  password: string;
+  passwordConfirmation: string;
+};
 
 type RoleItemProps = {
   title: string;
@@ -51,10 +75,40 @@ export default function RegisterScreen() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [repeatPasswordVisible, setRepeatPasswordVisible] = useState(false);
   const [agencyPasswordVisible, setAgencyPasswordVisible] = useState(false);
+  const [agencyRepeatPasswordVisible, setAgencyRepeatPasswordVisible] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [agencyDocName, setAgencyDocName] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userForm, setUserForm] = useState<UserForm>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    password: '',
+    passwordConfirmation: '',
+  });
+  const [companyForm, setCompanyForm] = useState<CompanyForm>({
+    companyName: '',
+    registrationNumber: '',
+    city: '',
+    companyEmail: '',
+    companyPhone: '',
+    firstName: '',
+    lastName: '',
+    jobTitle: '',
+    password: '',
+    passwordConfirmation: '',
+  });
   const transition = useRef(new Animated.Value(1)).current;
   const stepTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const updateUserForm = <K extends keyof UserForm>(field: K, value: UserForm[K]) => {
+    setUserForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const updateCompanyForm = <K extends keyof CompanyForm>(field: K, value: CompanyForm[K]) => {
+    setCompanyForm((current) => ({ ...current, [field]: value }));
+  };
 
   const onSelectRole = (nextRole: Role) => {
     setRole(nextRole);
@@ -75,6 +129,109 @@ export default function RegisterScreen() {
     if (result.canceled) return;
     setAgencyDocName(result.assets?.[0]?.name ?? null);
   };
+
+  const submitUserRegistration = async () => {
+    if (!acceptTerms) {
+      Alert.alert('Требуется согласие', 'Подтвердите согласие с условиями сервиса.');
+      return;
+    }
+
+    if (userForm.password !== userForm.passwordConfirmation) {
+      Alert.alert('Пароли не совпадают', 'Проверьте пароль и повторите ввод.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      const response = await registerUser({
+        first_name: userForm.firstName.trim(),
+        last_name: userForm.lastName.trim(),
+        email: userForm.email.trim(),
+        phone: userForm.phone.trim(),
+        password: userForm.password,
+        password_confirmation: userForm.passwordConfirmation,
+      });
+
+      router.replace({
+        pathname: '/confirm/[token]',
+        params: { token: response.token },
+      });
+    } catch (error) {
+      Alert.alert(
+        'Не удалось зарегистрироваться',
+        error instanceof Error ? error.message : 'Попробуйте ещё раз.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const submitCompanyRegistration = async () => {
+    if (!acceptTerms) {
+      Alert.alert('Требуется согласие', 'Подтвердите согласие с условиями сервиса.');
+      return;
+    }
+
+    if (companyForm.password !== companyForm.passwordConfirmation) {
+      Alert.alert('Пароли не совпадают', 'Проверьте пароль и повторите ввод.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      const response = await registerCompany({
+        company_name: companyForm.companyName.trim(),
+        registration_number: companyForm.registrationNumber.trim(),
+        city: companyForm.city.trim(),
+        company_email: companyForm.companyEmail.trim(),
+        company_phone: companyForm.companyPhone.trim(),
+        company_type: role === 'agency' ? 'agency' : 'developer',
+        first_name: companyForm.firstName.trim(),
+        last_name: companyForm.lastName.trim(),
+        job_title: companyForm.jobTitle.trim(),
+        password: companyForm.password,
+        password_confirmation: companyForm.passwordConfirmation,
+      });
+
+      router.replace({
+        pathname: '/confirm/[token]',
+        params: { token: response.token },
+      });
+    } catch (error) {
+      Alert.alert(
+        'Не удалось зарегистрировать компанию',
+        error instanceof Error ? error.message : 'Попробуйте ещё раз.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const canSubmitUser =
+    acceptTerms &&
+    !isSubmitting &&
+    userForm.firstName.trim().length > 0 &&
+    userForm.lastName.trim().length > 0 &&
+    userForm.email.trim().length > 0 &&
+    userForm.phone.trim().length > 0 &&
+    userForm.password.trim().length > 0 &&
+    userForm.passwordConfirmation.trim().length > 0;
+
+  const canSubmitCompany =
+    acceptTerms &&
+    !isSubmitting &&
+    companyForm.companyName.trim().length > 0 &&
+    companyForm.registrationNumber.trim().length > 0 &&
+    companyForm.city.trim().length > 0 &&
+    companyForm.companyEmail.trim().length > 0 &&
+    companyForm.companyPhone.trim().length > 0 &&
+    companyForm.firstName.trim().length > 0 &&
+    companyForm.lastName.trim().length > 0 &&
+    companyForm.jobTitle.trim().length > 0 &&
+    companyForm.password.trim().length > 0 &&
+    companyForm.passwordConfirmation.trim().length > 0;
 
   useEffect(() => {
     transition.setValue(0);
@@ -126,6 +283,8 @@ export default function RegisterScreen() {
                   style={styles.input}
                   placeholder="Иван"
                   placeholderTextColor={PLACEHOLDER_COLOR}
+                  value={userForm.firstName}
+                  onChangeText={(value) => updateUserForm('firstName', value)}
                 />
               </View>
               <View style={styles.col}>
@@ -134,6 +293,8 @@ export default function RegisterScreen() {
                   style={styles.input}
                   placeholder="Иванов"
                   placeholderTextColor={PLACEHOLDER_COLOR}
+                  value={userForm.lastName}
+                  onChangeText={(value) => updateUserForm('lastName', value)}
                 />
               </View>
             </View>
@@ -145,6 +306,8 @@ export default function RegisterScreen() {
               placeholderTextColor={PLACEHOLDER_COLOR}
               keyboardType="email-address"
               autoCapitalize="none"
+              value={userForm.email}
+              onChangeText={(value) => updateUserForm('email', value)}
             />
 
             <Text style={styles.label}>Телефон*</Text>
@@ -152,6 +315,8 @@ export default function RegisterScreen() {
               style={styles.input}
               placeholder="+7 700 000 00 00"
               placeholderTextColor={PLACEHOLDER_COLOR}
+              value={userForm.phone}
+              onChangeText={(value) => updateUserForm('phone', value)}
             />
 
             <Text style={styles.label}>Пароль*</Text>
@@ -161,6 +326,8 @@ export default function RegisterScreen() {
                 placeholder="••••••••"
                 placeholderTextColor={PLACEHOLDER_COLOR}
                 secureTextEntry={!passwordVisible}
+                value={userForm.password}
+                onChangeText={(value) => updateUserForm('password', value)}
               />
               <Pressable onPress={() => setPasswordVisible((v) => !v)} style={styles.eyeButton}>
                 <Ionicons
@@ -178,6 +345,8 @@ export default function RegisterScreen() {
                 placeholder="••••••••"
                 placeholderTextColor={PLACEHOLDER_COLOR}
                 secureTextEntry={!repeatPasswordVisible}
+                value={userForm.passwordConfirmation}
+                onChangeText={(value) => updateUserForm('passwordConfirmation', value)}
               />
               <Pressable
                 onPress={() => setRepeatPasswordVisible((v) => !v)}
@@ -203,10 +372,16 @@ export default function RegisterScreen() {
                 <Text style={styles.secondaryButtonText}>Назад</Text>
               </Pressable>
               <Pressable
-                style={[styles.primaryButton, !acceptTerms && styles.primaryButtonDisabled]}
-                disabled={!acceptTerms}
+                style={[
+                  styles.primaryButton,
+                  !canSubmitUser && styles.primaryButtonDisabled,
+                ]}
+                disabled={!canSubmitUser}
+                onPress={submitUserRegistration}
               >
-                <Text style={styles.primaryButtonText}>Зарегистрироваться</Text>
+                <Text style={styles.primaryButtonText}>
+                  {isSubmitting ? 'Отправляем...' : 'Зарегистрироваться'}
+                </Text>
               </Pressable>
             </View>
           </>
@@ -223,6 +398,8 @@ export default function RegisterScreen() {
                 role === 'developer' ? 'ТОО Застройщик' : 'ТОО Агентство недвижимости'
               }
               placeholderTextColor={PLACEHOLDER_COLOR}
+              value={companyForm.companyName}
+              onChangeText={(value) => updateCompanyForm('companyName', value)}
             />
 
             <View style={styles.twoCols}>
@@ -236,6 +413,8 @@ export default function RegisterScreen() {
                   style={styles.input}
                   placeholder="БИН/ИИН"
                   placeholderTextColor={PLACEHOLDER_COLOR}
+                  value={companyForm.registrationNumber}
+                  onChangeText={(value) => updateCompanyForm('registrationNumber', value)}
                 />
               </View>
               <View style={styles.col}>
@@ -246,6 +425,8 @@ export default function RegisterScreen() {
                   style={styles.input}
                   placeholder="Алматы"
                   placeholderTextColor={PLACEHOLDER_COLOR}
+                  value={companyForm.city}
+                  onChangeText={(value) => updateCompanyForm('city', value)}
                 />
               </View>
             </View>
@@ -257,6 +438,8 @@ export default function RegisterScreen() {
               placeholderTextColor={PLACEHOLDER_COLOR}
               keyboardType="email-address"
               autoCapitalize="none"
+              value={companyForm.companyEmail}
+              onChangeText={(value) => updateCompanyForm('companyEmail', value)}
             />
 
             <Text style={styles.label}>Телефон компании*</Text>
@@ -264,6 +447,8 @@ export default function RegisterScreen() {
               style={styles.input}
               placeholder="+7 700 000 00 00"
               placeholderTextColor={PLACEHOLDER_COLOR}
+              value={companyForm.companyPhone}
+              onChangeText={(value) => updateCompanyForm('companyPhone', value)}
             />
 
             <Text style={styles.sectionTitle}>Контактное лицо</Text>
@@ -275,6 +460,8 @@ export default function RegisterScreen() {
                   style={styles.input}
                   placeholder="Алексей"
                   placeholderTextColor={PLACEHOLDER_COLOR}
+                  value={companyForm.firstName}
+                  onChangeText={(value) => updateCompanyForm('firstName', value)}
                 />
               </View>
               <View style={styles.col}>
@@ -283,6 +470,8 @@ export default function RegisterScreen() {
                   style={styles.input}
                   placeholder="Иванов"
                   placeholderTextColor={PLACEHOLDER_COLOR}
+                  value={companyForm.lastName}
+                  onChangeText={(value) => updateCompanyForm('lastName', value)}
                 />
               </View>
             </View>
@@ -292,6 +481,8 @@ export default function RegisterScreen() {
               style={styles.input}
               placeholder="Директор"
               placeholderTextColor={PLACEHOLDER_COLOR}
+              value={companyForm.jobTitle}
+              onChangeText={(value) => updateCompanyForm('jobTitle', value)}
             />
 
             <Text style={styles.label}>Пароль*</Text>
@@ -301,6 +492,8 @@ export default function RegisterScreen() {
                 placeholder="••••••••"
                 placeholderTextColor={PLACEHOLDER_COLOR}
                 secureTextEntry={!agencyPasswordVisible}
+                value={companyForm.password}
+                onChangeText={(value) => updateCompanyForm('password', value)}
               />
               <Pressable
                 onPress={() => setAgencyPasswordVisible((v) => !v)}
@@ -308,6 +501,28 @@ export default function RegisterScreen() {
               >
                 <Ionicons
                   name={agencyPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color="#8D8D8D"
+                />
+              </Pressable>
+            </View>
+
+            <Text style={styles.label}>Повторите пароль*</Text>
+            <View style={styles.passwordWrap}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="••••••••"
+                placeholderTextColor={PLACEHOLDER_COLOR}
+                secureTextEntry={!agencyRepeatPasswordVisible}
+                value={companyForm.passwordConfirmation}
+                onChangeText={(value) => updateCompanyForm('passwordConfirmation', value)}
+              />
+              <Pressable
+                onPress={() => setAgencyRepeatPasswordVisible((v) => !v)}
+                style={styles.eyeButton}
+              >
+                <Ionicons
+                  name={agencyRepeatPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
                   size={20}
                   color="#8D8D8D"
                 />
@@ -347,8 +562,17 @@ export default function RegisterScreen() {
               <Pressable style={styles.secondaryButton} onPress={() => setStep(1)}>
                 <Text style={styles.secondaryButtonText}>Назад</Text>
               </Pressable>
-              <Pressable style={styles.primaryButton}>
-                <Text style={styles.primaryButtonText}>Зарегистрироваться</Text>
+              <Pressable
+                style={[
+                  styles.primaryButton,
+                  !canSubmitCompany && styles.primaryButtonDisabled,
+                ]}
+                disabled={!canSubmitCompany}
+                onPress={submitCompanyRegistration}
+              >
+                <Text style={styles.primaryButtonText}>
+                  {isSubmitting ? 'Отправляем...' : 'Зарегистрироваться'}
+                </Text>
               </Pressable>
             </View>
           </>

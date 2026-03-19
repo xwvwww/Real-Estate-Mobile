@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '@/contexts/AuthContext';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
 import LogoutActionCard from '@/components/LogoutActionCard';
 import SettingsScreenHeader from '@/components/SettingsScreenHeader';
@@ -34,13 +35,15 @@ function getInitial(name: string) {
 
 export default function DeveloperSettingsScreen() {
   const router = useRouter();
+  const { signOut } = useAuth();
 
   const [companyName, setCompanyName] = useState('ЖК Comfort Town');
   const [bin, setBin] = useState('123456789012');
   const [email, setEmail] = useState('info@comforttown.kz');
   const [phone, setPhone] = useState('+7 (727) 987-65-43');
 
-  const onLogout = () => {
+  const onLogout = async () => {
+    await signOut();
     router.replace('/login');
   };
 

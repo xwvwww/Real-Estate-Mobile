@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AgencyBottomBar } from '@/components/AgencyBottomBar';
+import { useAuth } from '@/contexts/AuthContext';
 import LogoutActionCard from '@/components/LogoutActionCard';
 import SettingsScreenHeader from '@/components/SettingsScreenHeader';
 
@@ -34,6 +35,7 @@ const EMPLOYEES: Employee[] = [
 
 export default function AgencySettingsScreen() {
   const router = useRouter();
+  const { signOut } = useAuth();
   const [agencyName, setAgencyName] = useState('Агентство недвижимости Гарант');
   const [email, setEmail] = useState('info@garant.kz');
   const [phone, setPhone] = useState('+7 (727) 123-45-67');
@@ -131,7 +133,12 @@ export default function AgencySettingsScreen() {
 
         </View>
 
-        <LogoutActionCard onPress={() => router.replace('/login')} />
+        <LogoutActionCard
+          onPress={async () => {
+            await signOut();
+            router.replace('/login');
+          }}
+        />
       </ScrollView>
 
       <AgencyBottomBar active="settings" />

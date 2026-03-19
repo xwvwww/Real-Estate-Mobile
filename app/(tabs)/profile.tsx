@@ -1,13 +1,16 @@
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '@/contexts/AuthContext';
 import LogoutActionCard from '@/components/LogoutActionCard';
 import SettingsScreenHeader from '@/components/SettingsScreenHeader';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { signOut } = useAuth();
 
-  const onLogout = () => {
+  const onLogout = async () => {
+    await signOut();
     router.replace('/login');
   };
 

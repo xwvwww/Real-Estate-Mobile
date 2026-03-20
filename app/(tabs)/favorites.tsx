@@ -13,7 +13,7 @@ export default function FavoritesScreen() {
   const favoriteItems = USER_LISTINGS.filter((item) => favoriteIds.includes(item.id));
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Избранное</Text>
       </View>
@@ -71,12 +71,13 @@ const styles = StyleSheet.create({
     color: '#3A3A3A',
   },
   scroll: {
+    flex: 1,
     backgroundColor: '#F8F8F8',
   },
   content: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 24,
+    paddingBottom: 12,
     gap: 12,
   },
   card: {

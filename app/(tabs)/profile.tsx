@@ -15,7 +15,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <SettingsScreenHeader />
 
       <ScrollView
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 24,
+    paddingBottom: 12,
   },
   card: {
     borderRadius: 14,

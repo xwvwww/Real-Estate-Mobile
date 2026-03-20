@@ -242,7 +242,7 @@ export default function UserCatalogScreen() {
       : 'Объекты по Казахстану';
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <View style={styles.headerBtnPlaceholder} />
         <Text style={styles.headerTitle}>Каталог объектов</Text>
@@ -251,7 +251,7 @@ export default function UserCatalogScreen() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.segmented} onLayout={(e) => setSegmentWidth(e.nativeEvent.layout.width - 8)}>
           <Animated.View
             pointerEvents="none"
@@ -401,6 +401,7 @@ export default function UserCatalogScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
+  scroll: { flex: 1, backgroundColor: '#FFFFFF' },
   header: {
     height: 56,
     borderBottomWidth: 1,
@@ -413,7 +414,7 @@ const styles = StyleSheet.create({
   headerBtnPlaceholder: { width: 40, height: 40 },
   headerBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 18, lineHeight: 27, color: '#3A3A3A', fontWeight: '600' },
-  content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24, gap: 12 },
+  content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, gap: 12 },
   segmented: {
     height: 40,
     backgroundColor: '#F8F8F8',

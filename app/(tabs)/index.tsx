@@ -76,7 +76,7 @@ export default function UserDashboardScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Личный кабинет</Text>
       </View>
@@ -181,7 +181,7 @@ export default function UserDashboardScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F8F8F8' },
-  scroll: { backgroundColor: '#F8F8F8' },
+  scroll: { flex: 1, backgroundColor: '#F8F8F8' },
   header: {
     height: 63,
     justifyContent: 'center',
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   headerTitle: { fontSize: 20, lineHeight: 28, fontWeight: '600', color: '#333333' },
-  content: { padding: 16, paddingBottom: 24, backgroundColor: '#F8F8F8' },
+  content: { padding: 16, paddingBottom: 12, backgroundColor: '#F8F8F8' },
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   metricCard: {
     borderRadius: 14,

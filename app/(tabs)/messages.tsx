@@ -9,12 +9,12 @@ export default function UserMessagesScreen() {
   const router = useRouter();
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Сообщения</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {USER_CHATS.length === 0 ? (
           <EmptyState icon="chatbubbles-outline" title="Пока нет сообщений" description="Когда появятся диалоги по заявкам, они будут здесь" />
         ) : null}
@@ -45,6 +45,7 @@ export default function UserMessagesScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F8F8F8' },
+  scroll: { flex: 1, backgroundColor: '#F8F8F8' },
   header: {
     height: 63,
     justifyContent: 'center',
@@ -54,7 +55,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   headerTitle: { fontSize: 20, lineHeight: 28, fontWeight: '600', color: '#3A3A3A' },
-  content: { padding: 16, gap: 12, paddingBottom: 24 },
+  content: { padding: 16, gap: 12, paddingBottom: 12 },
   card: {
     borderRadius: CARD_RADIUS,
     backgroundColor: '#FFFFFF',

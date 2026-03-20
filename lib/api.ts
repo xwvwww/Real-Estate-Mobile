@@ -27,6 +27,48 @@ export type ApiSession = {
   user: ApiUser;
 };
 
+export type ApiListingMedia = {
+  id: number;
+  listing_id: number;
+  url: string;
+  position: number;
+};
+
+export type ApiRentConstraints = {
+  listing_id: number;
+  allow_children: boolean;
+  allow_pets: boolean;
+  allow_students: boolean;
+  max_occupants: number;
+  min_term_months: number;
+};
+
+export type ApiListing = {
+  id: number;
+  company_id: number;
+  company_name?: string;
+  project_id?: number | null;
+  title: string;
+  description: string;
+  property_type: string;
+  deal_type: 'rent' | 'sale' | string;
+  status: string;
+  price: number;
+  city: string;
+  address: string;
+  rooms?: number | null;
+  area?: number | null;
+  floor?: number | null;
+  total_floors?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  media?: ApiListingMedia[];
+  rent_constraints?: ApiRentConstraints | null;
+  created_at: string;
+  updated_at: string;
+  published_at?: string | null;
+};
+
 type ApiResponseEnvelope<T> = {
   data?: T;
 };
@@ -62,6 +104,45 @@ export type CompanyRegistrationPayload = {
   password: string;
   password_confirmation: string;
   invite_token?: string;
+};
+
+export type ListingFilters = {
+  dealType?: 'buy' | 'rent';
+  city?: string;
+  propertyType?: string;
+  priceMin?: number;
+  priceMax?: number;
+  roomsMin?: number;
+  roomsMax?: number;
+  areaMin?: number;
+  areaMax?: number;
+  limit?: number;
+  offset?: number;
+};
+
+export type CreateListingPayload = {
+  project_id?: number;
+  title: string;
+  description: string;
+  property_type: string;
+  deal_type: 'rent' | 'sale';
+  price: number;
+  city: string;
+  address: string;
+  rooms?: number;
+  area?: number;
+  floor?: number;
+  total_floors?: number;
+  media?: Array<{ url: string; position?: number }>;
+  rent_constraints?: {
+    allow_children?: boolean;
+    allow_pets?: boolean;
+    allow_students?: boolean;
+    max_occupants?: number;
+    min_term_months?: number;
+  };
+  latitude?: number;
+  longitude?: number;
 };
 
 const DEFAULT_API_URL = 'http://localhost:8080/v1';
@@ -160,5 +241,62 @@ export async function registerCompany(payload: CompanyRegistrationPayload) {
 export async function activateUserToken(token: string) {
   return requestNoContent(`/users/activate/${encodeURIComponent(token)}`, {
     method: 'PUT',
+  });
+}
+
+export async function fetchListings(filters: ListingFilters = {}) {
+  const params = new URLSearchParams();
+
+  if (filters.dealType) {
+    params.set('deal_type', filters.dealType === 'buy' ? 'sale' : 'rent');
+  }
+  if (filters.city) {
+    params.set('city', filters.city);
+  }
+  if (filters.propertyType) {
+    params.set('property_type', filters.propertyType);
+  }
+  if (typeof filters.priceMin === 'number') {
+    params.set('price_min', String(filters.priceMin));
+  }
+  if (typeof filters.priceMax === 'number') {
+    params.set('price_max', String(filters.priceMax));
+  }
+  if (typeof filters.roomsMin === 'number') {
+    params.set('rooms_min', String(filters.roomsMin));
+  }
+  if (typeof filters.roomsMax === 'number') {
+    params.set('rooms_max', String(filters.roomsMax));
+  }
+  if (typeof filters.areaMin === 'number') {
+    params.set('area_min', String(filters.areaMin));
+  }
+  if (typeof filters.areaMax === 'number') {
+    params.set('area_max', String(filters.areaMax));
+  }
+  if (typeof filters.limit === 'number') {
+    params.set('limit', String(filters.limit));
+  }
+  if (typeof filters.offset === 'number') {
+    params.set('offset', String(filters.offset));
+  }
+
+  const query = params.toString();
+  const payload = await requestJson<ApiListing[] | null>(query ? `/listings?${query}` : '/listings');
+  return Array.isArray(payload) ? payload : [];
+}
+
+export async function fetchListingById(listingId: string | number) {
+  return requestJson<ApiListing>(`/listings/${encodeURIComponent(String(listingId))}`);
+}
+
+export async function createListing(payload: CreateListingPayload, token: string) {
+  return requestJson<ApiListing>('/listings', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
   });
 }

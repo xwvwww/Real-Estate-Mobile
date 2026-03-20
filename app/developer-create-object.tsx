@@ -1,7 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '@/contexts/AuthContext';
+import { createListing } from '@/lib/api';
 import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
+import { Alert } from 'react-native';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,8 +12,10 @@ const PROPERTY_TYPES = ['Квартира', 'Студия', 'Пентхаус'] 
 
 export default function DeveloperCreateObjectScreen() {
   const router = useRouter();
+  const { session } = useAuth();
 
   const [name, setName] = useState('');
+  const [city, setCity] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [price, setPrice] = useState('');
   const [rooms, setRooms] = useState('');
@@ -20,11 +25,13 @@ export default function DeveloperCreateObjectScreen() {
   const [description, setDescription] = useState('');
   const [photoName, setPhotoName] = useState('');
   const [typeModalOpen, setTypeModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const canSubmit = useMemo(
     () =>
       Boolean(
         name.trim() &&
+          city.trim() &&
           propertyType.trim() &&
           price.trim() &&
           rooms.trim() &&
@@ -44,6 +51,52 @@ export default function DeveloperCreateObjectScreen() {
 
     if (!result.canceled && result.assets?.length) {
       setPhotoName(result.assets[0].name);
+    }
+  };
+
+  const submitObject = async () => {
+    if (!session?.token) {
+      Alert.alert('Ошибка', 'Нужно заново войти в аккаунт.');
+      return;
+    }
+
+    const parsedPrice = Number(price.replace(/\s/g, ''));
+    const parsedRooms = Number(rooms);
+    const parsedArea = Number(area);
+    const parsedFloor = Number(floor);
+    const parsedFloorsTotal = Number(floorsTotal);
+
+    if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+      Alert.alert('Ошибка', 'Укажите корректную цену.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      await createListing(
+        {
+          title: name.trim(),
+          description: description.trim(),
+          property_type: propertyType.trim(),
+          deal_type: 'sale',
+          price: parsedPrice,
+          city: city.trim(),
+          address: '',
+          rooms: Number.isFinite(parsedRooms) ? parsedRooms : undefined,
+          area: Number.isFinite(parsedArea) ? parsedArea : undefined,
+          floor: Number.isFinite(parsedFloor) ? parsedFloor : undefined,
+          total_floors: Number.isFinite(parsedFloorsTotal) ? parsedFloorsTotal : undefined,
+        },
+        session.token
+      );
+
+      Alert.alert('Готово', 'Объект отправлен на модерацию.');
+      router.replace('/developer-objects');
+    } catch (error) {
+      Alert.alert('Ошибка', error instanceof Error ? error.message : 'Не удалось создать объект.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -72,6 +125,17 @@ export default function DeveloperCreateObjectScreen() {
               value={name}
               onChangeText={setName}
               placeholder="Например: 2-комнатная квартира, 65 м²"
+              placeholderTextColor="#939393"
+            />
+          </View>
+
+          <View style={styles.fieldWrap}>
+            <Text style={styles.fieldLabel}>Город*</Text>
+            <TextInput
+              style={styles.input}
+              value={city}
+              onChangeText={setCity}
+              placeholder="Например: Алматы"
               placeholderTextColor="#939393"
             />
           </View>
@@ -183,7 +247,10 @@ export default function DeveloperCreateObjectScreen() {
           <Text style={styles.photoHint}>Добавьте фотографии квартиры, планировки, вида из окон</Text>
         </View>
 
-        <Pressable style={[styles.submitButton, !canSubmit && styles.submitButtonDisabled]} disabled={!canSubmit}>
+        <Pressable
+          style={[styles.submitButton, (!canSubmit || submitting) && styles.submitButtonDisabled]}
+          onPress={submitObject}
+          disabled={!canSubmit || submitting}>
           <Text style={styles.submitText}>Отправить на модерацию</Text>
         </Pressable>
 

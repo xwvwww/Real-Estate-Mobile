@@ -1,20 +1,91 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyState } from '@/components/EmptyState';
 import UserMapCard from '@/components/UserMapCard';
+import { fetchListingById } from '@/lib/api';
+import { mapApiListingToCatalogListing, type CatalogListing } from '@/lib/listings';
 import { getListingById } from '@/constants/userListings';
 import { toggleFavorite, useIsFavorite } from '@/stores/favoritesStore';
 
 export default function ObjectDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const listing = getListingById(id);
-  const isFavorite = useIsFavorite(listing?.id ?? '');
+  const localListing = getListingById(id);
+  const isRemoteListingId = Boolean(id && /^\d+$/.test(id));
+  const [remoteListing, setRemoteListing] = useState<CatalogListing | null>(null);
+  const [loading, setLoading] = useState(isRemoteListingId);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeSlide] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isRemoteListingId || !id) {
+      setRemoteListing(null);
+      setLoadError(null);
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setLoading(true);
+    setLoadError(null);
+
+    fetchListingById(id)
+      .then((item) => {
+        if (cancelled) {
+          return;
+        }
+        setRemoteListing(mapApiListingToCatalogListing(item));
+      })
+      .catch((error: unknown) => {
+        if (cancelled) {
+          return;
+        }
+        setRemoteListing(null);
+        setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить объект');
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isRemoteListingId]);
+
+  const listing = remoteListing ?? localListing;
+  const isFavorite = useIsFavorite(listing?.id ?? '');
+
+  const listingImages = useMemo(() => {
+    if (!listing) {
+      return [];
+    }
+
+    return listing.images.length > 0 ? listing.images : [listing.image];
+  }, [listing]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.emptyWrap}>
+          <EmptyState
+            icon="home-outline"
+            title="Загружаем объект"
+            description="Подождите, мы получаем данные из каталога"
+            elevated={false}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!listing) {
     return (
@@ -23,7 +94,7 @@ export default function ObjectDetailsScreen() {
           <EmptyState
             icon="home-outline"
             title="Объект не найден"
-            description="Вернитесь назад и выберите объявление из списка"
+            description={loadError || 'Вернитесь назад и выберите объявление из списка'}
             actionLabel="Вернуться назад"
             onAction={() => router.back()}
           />
@@ -45,7 +116,7 @@ export default function ObjectDetailsScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.heroWrap}>
-        <Image source={listing.image} style={styles.heroImage} contentFit="cover" />
+        <Image source={listingImages[activeSlide] ?? listing.image} style={styles.heroImage} contentFit="cover" />
 
         <Pressable style={styles.topLeftBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color="#3A3A3A" />
@@ -61,10 +132,10 @@ export default function ObjectDetailsScreen() {
         </View>
 
         <View style={styles.badgeType}>
-          <Text style={styles.badgeTypeText}>{listing.type}</Text>
+          <Text style={styles.badgeTypeText}>{listing.propertyType}</Text>
         </View>
         <View style={styles.badgeCounter}>
-          <Text style={styles.badgeCounterText}>{activeSlide + 1} / 1</Text>
+          <Text style={styles.badgeCounterText}>{activeSlide + 1} / {Math.max(listingImages.length, 1)}</Text>
         </View>
       </View>
 
@@ -83,17 +154,17 @@ export default function ObjectDetailsScreen() {
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
             <Ionicons name="bed-outline" size={20} color="#70A0FF" />
-            <Text style={styles.statValue}>{listing.beds}</Text>
+            <Text style={styles.statValue}>{listing.roomsLabel}</Text>
             <Text style={styles.statLabel}>комнат</Text>
           </View>
           <View style={styles.statCard}>
             <Ionicons name="resize-outline" size={20} color="#70A0FF" />
-            <Text style={styles.statValue}>{listing.area.replace(' м²', '')}</Text>
+            <Text style={styles.statValue}>{listing.areaLabel.replace(' м²', '')}</Text>
             <Text style={styles.statLabel}>м²</Text>
           </View>
           <View style={styles.statCard}>
             <Ionicons name="business-outline" size={20} color="#70A0FF" />
-            <Text style={styles.statValue}>{listing.floor.replace(' этаж', '')}</Text>
+            <Text style={styles.statValue}>{listing.floorLabel.replace(' этаж', '')}</Text>
             <Text style={styles.statLabel}>этаж</Text>
           </View>
         </View>
@@ -116,15 +187,15 @@ export default function ObjectDetailsScreen() {
           markers={[
             {
               id: `m-${listing.id}`,
-              lat: listing.latitude,
-              lng: listing.longitude,
+              lat: listing.latitude ?? 0,
+              lng: listing.longitude ?? 0,
               price: listing.price,
               listingId: listing.id,
             },
           ]}
           initialRegion={{
-            latitude: listing.latitude,
-            longitude: listing.longitude,
+            latitude: listing.latitude ?? 48.0196,
+            longitude: listing.longitude ?? 66.9237,
             latitudeDelta: 0.05,
             longitudeDelta: 0.05,
           }}
@@ -140,8 +211,8 @@ export default function ObjectDetailsScreen() {
               <Text style={styles.agencyAvatarText}>AH</Text>
             </View>
             <View>
-              <Text style={styles.agencyName}>Агентство недвижимости</Text>
-              <Text style={styles.agencyStatus}>Проверено</Text>
+              <Text style={styles.agencyName}>{listing.companyName || 'Агентство недвижимости'}</Text>
+              <Text style={styles.agencyStatus}>{listing.status === 'active' ? 'Опубликовано' : 'Проверено'}</Text>
             </View>
           </View>
           <Text style={styles.agencyText}>Профессиональная помощь в подборе и оформлении недвижимости</Text>

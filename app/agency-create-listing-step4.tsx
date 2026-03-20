@@ -1,8 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '@/contexts/AuthContext';
+import { createListing } from '@/lib/api';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { resetListingDraft, updateListingDraft, useListingDraft } from '@/stores/listingDraftStore';
 
 let DocumentPicker: any = null;
 try {
@@ -14,8 +17,9 @@ try {
 
 export default function AgencyCreateListingStep4Screen() {
   const router = useRouter();
-  const [description, setDescription] = useState('');
-  const [photos, setPhotos] = useState<{ name: string }[]>([]);
+  const { session } = useAuth();
+  const draft = useListingDraft();
+  const [submitting, setSubmitting] = useState(false);
 
   const onPickPhoto = async () => {
     try {
@@ -39,10 +43,64 @@ export default function AgencyCreateListingStep4Screen() {
       }));
 
       if (picked.length > 0) {
-        setPhotos((prev) => [...prev, ...picked]);
+        updateListingDraft({ photoNames: [...draft.photoNames, ...picked.map((photo) => photo.name)] });
       }
     } catch {
       Alert.alert('Ошибка', 'Не удалось выбрать фотографии.');
+    }
+  };
+
+  const onSubmit = async () => {
+    if (!session?.token) {
+      Alert.alert('Ошибка', 'Нужно заново войти в аккаунт.');
+      return;
+    }
+
+    const price = Number(draft.price.replace(/\s/g, ''));
+    const rooms = draft.roomsCount ? Number(draft.roomsCount) : undefined;
+    const area = draft.area ? Number(draft.area) : undefined;
+    const floor = draft.floor ? Number(draft.floor) : undefined;
+    const totalFloors = draft.totalFloors ? Number(draft.totalFloors) : undefined;
+
+    if (!draft.title.trim() || !draft.propertyType.trim() || !draft.dealType || !draft.city.trim() || !draft.description.trim()) {
+      Alert.alert('Ошибка', 'Заполните все обязательные поля.');
+      return;
+    }
+
+    if (!Number.isFinite(price) || price <= 0) {
+      Alert.alert('Ошибка', 'Укажите корректную цену.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      await createListing(
+        {
+          title: draft.title.trim(),
+          description: draft.description.trim(),
+          property_type: draft.propertyType,
+          deal_type: draft.dealType === 'Аренда' ? 'rent' : 'sale',
+          price,
+          city: draft.city.trim(),
+          address: draft.address.trim(),
+          rooms: Number.isFinite(rooms ?? NaN) ? rooms : undefined,
+          area: Number.isFinite(area ?? NaN) ? area : undefined,
+          floor: Number.isFinite(floor ?? NaN) ? floor : undefined,
+          total_floors: Number.isFinite(totalFloors ?? NaN) ? totalFloors : undefined,
+          latitude: draft.latitude ?? undefined,
+          longitude: draft.longitude ?? undefined,
+        },
+        session.token
+      );
+
+      resetListingDraft();
+      Alert.alert('Готово', 'Объявление отправлено на модерацию.');
+      router.replace('/agency-listings');
+    } catch (error) {
+      Alert.alert('Ошибка', error instanceof Error ? error.message : 'Не удалось отправить объявление.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -86,8 +144,8 @@ export default function AgencyCreateListingStep4Screen() {
               style={styles.textarea}
               multiline
               textAlignVertical="top"
-              value={description}
-              onChangeText={setDescription}
+              value={draft.description}
+              onChangeText={(value) => updateListingDraft({ description: value })}
               placeholder="Опишите особенности и преимущества объекта..."
               placeholderTextColor="#939393"
             />
@@ -101,10 +159,10 @@ export default function AgencyCreateListingStep4Screen() {
                 <Text style={styles.addPhotoText}>Добавить</Text>
               </Pressable>
 
-              {photos.slice(0, 2).map((photo, index) => (
-                <View key={`${photo.name}-${index}`} style={styles.photoChip}>
+              {draft.photoNames.slice(0, 2).map((photo, index) => (
+                <View key={`${photo}-${index}`} style={styles.photoChip}>
                   <Text style={styles.photoChipText} numberOfLines={2}>
-                    {photo.name}
+                    {photo}
                   </Text>
                 </View>
               ))}
@@ -121,7 +179,7 @@ export default function AgencyCreateListingStep4Screen() {
             </Pressable>
           </View>
 
-          <Pressable style={styles.submitAction}>
+          <Pressable style={[styles.submitAction, submitting && styles.submitActionDisabled]} onPress={onSubmit} disabled={submitting}>
             <Text style={styles.submitActionText}>Отправить на модерацию</Text>
           </Pressable>
         </View>
@@ -310,6 +368,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#70A0FF',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  submitActionDisabled: {
+    opacity: 0.7,
   },
   submitActionText: {
     fontSize: 16,

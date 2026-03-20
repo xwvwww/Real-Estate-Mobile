@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Modal,
   Pressable,
@@ -14,8 +15,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppDropdown from '@/components/AppDropdown';
+import { EmptyState } from '@/components/EmptyState';
 import UserMapCard, { type MapRegion, type UserMapMarker } from '@/components/UserMapCard';
-import { USER_LISTINGS, type UserListing } from '@/constants/userListings';
+import { fetchListings } from '@/lib/api';
+import { mapApiListingToCatalogListing, type CatalogListing } from '@/lib/listings';
 import { toggleFavorite, useIsFavorite } from '@/stores/favoritesStore';
 
 type ObjectType = 'all' | 'Квартира' | 'Студия' | 'Пентхаус' | 'Дом' | 'Новостройка';
@@ -27,32 +30,27 @@ const DEFAULT_REGION: MapRegion = {
   longitudeDelta: 16,
 };
 
-const CITY_REGIONS: Record<string, MapRegion> = Object.fromEntries(
-  USER_LISTINGS.map((item) => [
-    item.city,
-    {
-      latitude: item.latitude,
-      longitude: item.longitude,
-      latitudeDelta: 0.45,
-      longitudeDelta: 0.45,
-    },
-  ])
-);
-
-function isInBounds(item: UserListing, region: MapRegion) {
+function isInBounds(item: CatalogListing, region: MapRegion) {
   const latMin = region.latitude - region.latitudeDelta / 2;
   const latMax = region.latitude + region.latitudeDelta / 2;
   const lngMin = region.longitude - region.longitudeDelta / 2;
   const lngMax = region.longitude + region.longitudeDelta / 2;
-  return item.latitude >= latMin && item.latitude <= latMax && item.longitude >= lngMin && item.longitude <= lngMax;
+  return (
+    typeof item.latitude === 'number' &&
+    typeof item.longitude === 'number' &&
+    item.latitude >= latMin &&
+    item.latitude <= latMax &&
+    item.longitude >= lngMin &&
+    item.longitude <= lngMax
+  );
 }
 
-function StatRow({ beds, area, floor }: { beds: string; area: string; floor: string }) {
+function StatRow({ rooms, area, floor }: { rooms: string; area: string; floor: string }) {
   return (
     <View style={styles.statsRow}>
       <View style={styles.statItem}>
         <Ionicons name="bed-outline" size={14} color="#737373" />
-        <Text style={styles.statText}>{beds}</Text>
+        <Text style={styles.statText}>{rooms}</Text>
       </View>
       <View style={styles.statItem}>
         <Ionicons name="resize-outline" size={14} color="#737373" />
@@ -70,7 +68,7 @@ function ListingCard({
   listing,
   onPressDetails,
 }: {
-  listing: UserListing;
+  listing: CatalogListing;
   onPressDetails: () => void;
 }) {
   const isFavorite = useIsFavorite(listing.id);
@@ -92,7 +90,7 @@ function ListingCard({
       <View style={styles.cardImage}>
         <Image source={listing.image} style={styles.cardPhoto} contentFit="cover" />
         <View style={styles.tag}>
-          <Text style={styles.tagText}>{listing.type}</Text>
+          <Text style={styles.tagText}>{listing.propertyType}</Text>
         </View>
         <Pressable
           style={styles.favoriteCircle}
@@ -114,7 +112,7 @@ function ListingCard({
         <Text style={styles.price}>{listing.price}</Text>
         <Text style={styles.title}>{listing.title}</Text>
         <Text style={styles.address}>{listing.address}</Text>
-        <StatRow beds={listing.beds} area={listing.area} floor={listing.floor} />
+        <StatRow rooms={listing.roomsLabel} area={listing.areaLabel} floor={listing.floorLabel} />
         <Pressable
           style={styles.moreBtn}
           onPress={(event) => {
@@ -134,6 +132,11 @@ export default function UserCatalogScreen() {
   const segmentAnim = useRef(new Animated.Value(0)).current;
   const [segmentWidth, setSegmentWidth] = useState(0);
 
+  const [catalogListings, setCatalogListings] = useState<CatalogListing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
+
   const [filterVisible, setFilterVisible] = useState(false);
   const [city, setCity] = useState('');
   const [cityDropdownVisible, setCityDropdownVisible] = useState(false);
@@ -146,7 +149,53 @@ export default function UserCatalogScreen() {
   const [showList, setShowList] = useState(true);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
 
-  const cityOptions = useMemo(() => [...new Set(USER_LISTINGS.map((item) => item.city))], []);
+  useEffect(() => {
+    let cancelled = false;
+
+    setLoading(true);
+    setLoadError(null);
+
+    fetchListings({ dealType })
+      .then((items) => {
+        if (cancelled) {
+          return;
+        }
+        setCatalogListings(items.map((item, index) => mapApiListingToCatalogListing(item, index)));
+      })
+      .catch((error: unknown) => {
+        if (cancelled) {
+          return;
+        }
+        setCatalogListings([]);
+        setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить каталог');
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dealType, reloadTick]);
+
+  const cityOptions = useMemo(() => [...new Set(catalogListings.map((item) => item.city))], [catalogListings]);
+
+  const cityRegions = useMemo(() => {
+    return catalogListings.reduce<Record<string, MapRegion>>((regions, item) => {
+      if (item.latitude != null && item.longitude != null && regions[item.city] === undefined) {
+        regions[item.city] = {
+          latitude: item.latitude,
+          longitude: item.longitude,
+          latitudeDelta: 0.45,
+          longitudeDelta: 0.45,
+        };
+      }
+
+      return regions;
+    }, {});
+  }, [catalogListings]);
 
   const onSelectDealType = (nextType: 'buy' | 'rent') => {
     setDealType(nextType);
@@ -163,14 +212,11 @@ export default function UserCatalogScreen() {
   });
 
   const filteredListings = useMemo(() => {
-    return USER_LISTINGS.filter((item) => {
-      if (item.dealType !== dealType) {
-        return false;
-      }
+    return catalogListings.filter((item) => {
       if (city && item.city !== city) {
         return false;
       }
-      if (objectType !== 'all' && item.type !== objectType) {
+      if (objectType !== 'all' && item.propertyType !== objectType) {
         return false;
       }
       const fromValue = Number(priceFrom.replace(/\s/g, ''));
@@ -186,17 +232,19 @@ export default function UserCatalogScreen() {
       }
       return true;
     });
-  }, [areaFilterRegion, city, dealType, objectType, priceFrom, priceTo]);
+  }, [areaFilterRegion, catalogListings]);
 
   const markers = useMemo<UserMapMarker[]>(
     () =>
-      filteredListings.map((item) => ({
-        id: `m-${item.id}`,
-        lat: item.latitude,
-        lng: item.longitude,
-        price: item.price.replace(' 000 000', 'M').replace(' ₸', ' ₸'),
-        listingId: item.id,
-      })),
+      filteredListings
+        .filter((item) => item.latitude != null && item.longitude != null)
+        .map((item) => ({
+          id: `m-${item.id}`,
+          lat: item.latitude as number,
+          lng: item.longitude as number,
+          price: item.price,
+          listingId: item.id,
+        })),
     [filteredListings]
   );
 
@@ -209,8 +257,8 @@ export default function UserCatalogScreen() {
   }, [filteredListings, markers, selectedMarkerId]);
 
   const applyFilter = () => {
-    if (city && CITY_REGIONS[city]) {
-      setRegion(CITY_REGIONS[city]);
+    if (city && cityRegions[city]) {
+      setRegion(cityRegions[city]);
       setAreaFilterRegion(null);
       const firstCityListing = filteredListings.find((item) => item.city === city);
       setSelectedMarkerId(firstCityListing ? `m-${firstCityListing.id}` : null);
@@ -240,6 +288,8 @@ export default function UserCatalogScreen() {
     : city
       ? `Объекты: ${city}`
       : 'Объекты по Казахстану';
+
+  const showNoResults = !loading && !loadError && filteredListings.length === 0;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -283,6 +333,25 @@ export default function UserCatalogScreen() {
           citySubtitle={mapSubtitle}
         />
 
+        {loading ? (
+          <View style={styles.loadingState}>
+            <ActivityIndicator color="#70A0FF" />
+            <Text style={styles.loadingText}>Загружаем объекты...</Text>
+          </View>
+        ) : null}
+
+        {loadError ? (
+          <EmptyState
+            icon="cloud-offline-outline"
+            title="Не удалось загрузить каталог"
+            description={loadError}
+            actionLabel="Повторить"
+            onAction={() => setReloadTick((value) => value + 1)}
+            elevated={false}
+            style={styles.stateBlock}
+          />
+        ) : null}
+
         {selectedListing ? (
           <Pressable
             style={styles.previewCard}
@@ -301,7 +370,17 @@ export default function UserCatalogScreen() {
           </Pressable>
         ) : null}
 
-        <Text style={styles.foundText}>Найдено {filteredListings.length} объектов</Text>
+        {showNoResults ? (
+          <EmptyState
+            icon="search-outline"
+            title="Объекты не найдены"
+            description="Измените фильтры или попробуйте другой город"
+            elevated={false}
+            style={styles.stateBlock}
+          />
+        ) : (
+          <Text style={styles.foundText}>Найдено {filteredListings.length} объектов</Text>
+        )}
 
         {showList
           ? filteredListings.map((listing) => (
@@ -415,6 +494,20 @@ const styles = StyleSheet.create({
   headerBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 18, lineHeight: 27, color: '#3A3A3A', fontWeight: '600' },
   content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, gap: 12 },
+  loadingState: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  loadingText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#737373',
+  },
+  stateBlock: {
+    marginTop: 4,
+  },
   segmented: {
     height: 40,
     backgroundColor: '#F8F8F8',

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppDropdown from '@/components/AppDropdown';
+import { updateListingDraft, useListingDraft } from '@/stores/listingDraftStore';
 
 type MapRegion = {
   latitude: number;
@@ -29,22 +30,23 @@ const CITY_OPTIONS = [
 
 export default function AgencyCreateListingStep2Screen() {
   const router = useRouter();
+  const draft = useListingDraft();
   const MapView = MapModule?.default ?? MapModule?.MapView;
   const Marker = MapModule?.Marker;
   const UrlTile = MapModule?.UrlTile;
   const hasNativeMap = Boolean(MapView && Marker && UrlTile);
 
-  const [city, setCity] = useState('');
   const [cityOpen, setCityOpen] = useState(false);
-  const [address, setAddress] = useState('');
   const [region, setRegion] = useState<MapRegion>({
-    latitude: 43.238,
-    longitude: 76.944,
+    latitude: draft.latitude ?? 43.238,
+    longitude: draft.longitude ?? 76.944,
     latitudeDelta: 0.08,
     longitudeDelta: 0.08,
   });
   const [pickedLocation, setPickedLocation] = useState<{ latitude: number; longitude: number } | null>(
-    null,
+    draft.latitude && draft.longitude
+      ? { latitude: draft.latitude, longitude: draft.longitude }
+      : null,
   );
 
   const onZoom = (dir: 'in' | 'out') => {
@@ -61,7 +63,6 @@ export default function AgencyCreateListingStep2Screen() {
   };
 
   const onSelectCity = (nextCity: (typeof CITY_OPTIONS)[number]) => {
-    setCity(nextCity.label);
     setCityOpen(false);
     setRegion({
       latitude: nextCity.latitude,
@@ -73,6 +74,7 @@ export default function AgencyCreateListingStep2Screen() {
       latitude: nextCity.latitude,
       longitude: nextCity.longitude,
     });
+    updateListingDraft({ city: nextCity.label, latitude: nextCity.latitude, longitude: nextCity.longitude });
   };
 
   return (
@@ -112,7 +114,7 @@ export default function AgencyCreateListingStep2Screen() {
           <View style={styles.fieldWrap}>
             <Text style={styles.fieldLabel}>Город*</Text>
             <AppDropdown
-              value={city}
+              value={draft.city}
               placeholder="Выберите город"
               open={cityOpen}
               options={CITY_OPTIONS.map((option) => ({ label: option.label, value: option.label }))}
@@ -131,8 +133,8 @@ export default function AgencyCreateListingStep2Screen() {
             <Text style={styles.fieldLabel}>Адрес*</Text>
             <TextInput
               style={styles.input}
-              value={address}
-              onChangeText={setAddress}
+              value={draft.address}
+              onChangeText={(value) => updateListingDraft({ address: value })}
               placeholder="Например: ул. Абая 150"
               placeholderTextColor="#939393"
             />
@@ -145,7 +147,11 @@ export default function AgencyCreateListingStep2Screen() {
                   style={StyleSheet.absoluteFill}
                   region={region}
                   onRegionChangeComplete={setRegion}
-                  onPress={(event: any) => setPickedLocation(event.nativeEvent.coordinate)}>
+                  onPress={(event: any) => {
+                    const coordinate = event.nativeEvent.coordinate;
+                    setPickedLocation(coordinate);
+                    updateListingDraft({ latitude: coordinate.latitude, longitude: coordinate.longitude });
+                  }}>
                   <UrlTile urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maximumZ={19} />
                   {pickedLocation ? <Marker coordinate={pickedLocation} /> : null}
                 </MapView>
@@ -165,7 +171,7 @@ export default function AgencyCreateListingStep2Screen() {
               </View>
 
               <View style={styles.mapBadge}>
-                <Text style={styles.mapBadgeTitle}>{city || 'Казахстан'}</Text>
+                <Text style={styles.mapBadgeTitle}>{draft.city || 'Казахстан'}</Text>
                 <Text style={styles.mapBadgeSubtitle}>Выберите точку на карте</Text>
               </View>
             </View>

@@ -300,3 +300,37 @@ export async function createListing(payload: CreateListingPayload, token: string
     body: JSON.stringify(payload),
   });
 }
+
+export type ListingUploadFile = {
+  uri: string;
+  name: string;
+  type?: string;
+};
+
+export async function uploadListingMedia(
+  listingId: string | number,
+  file: ListingUploadFile,
+  token: string
+) {
+  const formData = new FormData();
+  formData.append('file', {
+    uri: file.uri,
+    name: file.name,
+    type: file.type || 'application/octet-stream',
+  } as unknown as Blob);
+
+  const response = await fetch(buildUrl(`/listings/${encodeURIComponent(String(listingId))}/media`), {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+
+  return (await response.json()) as ApiListingMedia;
+}

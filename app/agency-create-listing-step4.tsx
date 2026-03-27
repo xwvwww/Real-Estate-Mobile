@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
-import { createListing } from '@/lib/api';
+import { createListing, uploadListingMedia, type ListingUploadFile } from '@/lib/api';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -20,6 +20,7 @@ export default function AgencyCreateListingStep4Screen() {
   const { session } = useAuth();
   const draft = useListingDraft();
   const [submitting, setSubmitting] = useState(false);
+  const [pickedPhotos, setPickedPhotos] = useState<ListingUploadFile[]>([]);
 
   const onPickPhoto = async () => {
     try {
@@ -39,11 +40,17 @@ export default function AgencyCreateListingStep4Screen() {
       }
 
       const picked = (result.assets ?? []).map((asset: any) => ({
-        name: asset?.name || 'Фото',
-      }));
+        uri: asset?.uri,
+        name: asset?.name || 'photo.jpg',
+        type: asset?.mimeType || 'image/jpeg',
+      })) as ListingUploadFile[];
 
       if (picked.length > 0) {
-        updateListingDraft({ photoNames: [...draft.photoNames, ...picked.map((photo) => photo.name)] });
+        const validPicked = picked.filter((photo) => Boolean(photo.uri));
+        if (validPicked.length > 0) {
+          setPickedPhotos((prev) => [...prev, ...validPicked]);
+          updateListingDraft({ photoNames: [...draft.photoNames, ...validPicked.map((photo) => photo.name)] });
+        }
       }
     } catch {
       Alert.alert('Ошибка', 'Не удалось выбрать фотографии.');
@@ -75,7 +82,7 @@ export default function AgencyCreateListingStep4Screen() {
     try {
       setSubmitting(true);
 
-      await createListing(
+      const createdListing = await createListing(
         {
           title: draft.title.trim(),
           description: draft.description.trim(),
@@ -93,6 +100,10 @@ export default function AgencyCreateListingStep4Screen() {
         },
         session.token
       );
+
+      for (const photo of pickedPhotos) {
+        await uploadListingMedia(createdListing.id, photo, session.token);
+      }
 
       resetListingDraft();
       Alert.alert('Готово', 'Объявление отправлено на модерацию.');

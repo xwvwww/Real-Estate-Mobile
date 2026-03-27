@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
-import { createListing } from '@/lib/api';
+import { createListing, uploadListingMedia, type ListingUploadFile } from '@/lib/api';
 import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -23,7 +23,7 @@ export default function DeveloperCreateObjectScreen() {
   const [floor, setFloor] = useState('');
   const [floorsTotal, setFloorsTotal] = useState('');
   const [description, setDescription] = useState('');
-  const [photoName, setPhotoName] = useState('');
+  const [photoAsset, setPhotoAsset] = useState<ListingUploadFile | null>(null);
   const [typeModalOpen, setTypeModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -40,7 +40,7 @@ export default function DeveloperCreateObjectScreen() {
           floorsTotal.trim() &&
           description.trim(),
       ),
-    [name, propertyType, price, rooms, area, floor, floorsTotal, description],
+    [name, city, propertyType, price, rooms, area, floor, floorsTotal, description],
   );
 
   const pickPhoto = async () => {
@@ -50,7 +50,14 @@ export default function DeveloperCreateObjectScreen() {
     });
 
     if (!result.canceled && result.assets?.length) {
-      setPhotoName(result.assets[0].name);
+      const asset = result.assets[0];
+      if (asset.uri) {
+        setPhotoAsset({
+          uri: asset.uri,
+          name: asset.name || 'photo.jpg',
+          type: asset.mimeType || 'image/jpeg',
+        });
+      }
     }
   };
 
@@ -74,7 +81,7 @@ export default function DeveloperCreateObjectScreen() {
     try {
       setSubmitting(true);
 
-      await createListing(
+      const createdListing = await createListing(
         {
           title: name.trim(),
           description: description.trim(),
@@ -90,6 +97,10 @@ export default function DeveloperCreateObjectScreen() {
         },
         session.token
       );
+
+      if (photoAsset) {
+        await uploadListingMedia(createdListing.id, photoAsset, session.token);
+      }
 
       Alert.alert('Готово', 'Объект отправлен на модерацию.');
       router.replace('/developer-objects');
@@ -236,10 +247,10 @@ export default function DeveloperCreateObjectScreen() {
               <Ionicons name="cloud-upload-outline" size={24} color="#70A0FF" />
               <Text style={styles.photoAddText}>Добавить</Text>
             </Pressable>
-            {photoName ? (
+            {photoAsset ? (
               <View style={styles.photoMeta}>
                 <Text numberOfLines={2} style={styles.photoName}>
-                  {photoName}
+                  {photoAsset.name}
                 </Text>
               </View>
             ) : null}

@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import type { ListingUploadFile } from '@/lib/api';
 
 export type ListingDraft = {
   title: string;
@@ -15,6 +16,7 @@ export type ListingDraft = {
   totalFloors: string;
   description: string;
   photoNames: string[];
+  photos: ListingUploadFile[];
 };
 
 const DEFAULT_DRAFT: ListingDraft = {
@@ -32,6 +34,7 @@ const DEFAULT_DRAFT: ListingDraft = {
   totalFloors: '',
   description: '',
   photoNames: [],
+  photos: [],
 };
 
 let listingDraft: ListingDraft = DEFAULT_DRAFT;

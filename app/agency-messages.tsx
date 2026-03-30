@@ -1,13 +1,107 @@
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AgencyBottomBar } from '@/components/AgencyBottomBar';
 import { EmptyState } from '@/components/EmptyState';
-import { AGENCY_MESSAGES } from '@/constants/agencyData';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchApplicationMessages, fetchApplications, fetchListingById } from '@/lib/api';
+
+type AgencyChatListItem = {
+  id: string;
+  applicationId: string;
+  name: string;
+  object: string;
+  preview: string;
+  time: string;
+  unread: number;
+  avatarLetter: string;
+};
+
+function formatTime(value?: string) {
+  if (!value) {
+    return '';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return new Intl.DateTimeFormat('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
 
 export default function AgencyMessagesScreen() {
   const router = useRouter();
+  const { session } = useAuth();
+  const [chats, setChats] = useState<AgencyChatListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!session?.token) {
+      setChats([]);
+      setLoading(false);
+      setLoadError('Войдите в аккаунт агентства, чтобы увидеть сообщения');
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setLoading(true);
+    setLoadError(null);
+
+    fetchApplications(session.token)
+      .then(async (applications) => {
+        const chatsPayload = await Promise.all(
+          applications.map(async (application) => {
+            const [listing, recentMessages] = await Promise.all([
+              fetchListingById(application.listing_id, session.token).catch(() => null),
+              fetchApplicationMessages(application.id, session.token, { limit: 1 }).catch(() => []),
+            ]);
+
+            const lastMessage = recentMessages[recentMessages.length - 1] ?? null;
+
+            return {
+              id: String(application.id),
+              applicationId: String(application.id),
+              name: application.full_name,
+              object: listing?.title || `Объект #${application.listing_id}`,
+              preview: lastMessage?.body || application.comment?.trim() || 'Откройте диалог по заявке',
+              time: formatTime(lastMessage?.created_at || application.updated_at),
+              unread: 0,
+              avatarLetter: application.full_name.trim().charAt(0).toUpperCase() || 'К',
+            } satisfies AgencyChatListItem;
+          })
+        );
+
+        if (!cancelled) {
+          setChats(chatsPayload);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setChats([]);
+          setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить сообщения');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadTick, session?.token]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -21,12 +115,38 @@ export default function AgencyMessagesScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never">
-        {AGENCY_MESSAGES.length === 0 ? (
-          <EmptyState icon="chatbubbles-outline" title="Пока нет сообщений" description="Диалоги с клиентами будут отображаться в этом разделе" />
+        {loading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator color="#70A0FF" />
+            <Text style={styles.loadingText}>Загружаем сообщения...</Text>
+          </View>
         ) : null}
 
-        {AGENCY_MESSAGES.map((item) => (
-          <Pressable key={item.id} style={styles.card} onPress={() => router.push(`/agency-message/${item.id}` as any)}>
+        {!loading && loadError ? (
+          <EmptyState
+            icon="cloud-offline-outline"
+            title="Не удалось загрузить сообщения"
+            description={loadError}
+            actionLabel="Повторить"
+            onAction={() => setReloadTick((value) => value + 1)}
+          />
+        ) : null}
+
+        {!loading && !loadError && chats.length === 0 ? (
+          <EmptyState
+            icon="chatbubbles-outline"
+            title="Пока нет сообщений"
+            description="Диалоги с клиентами будут отображаться в этом разделе"
+          />
+        ) : null}
+
+        {chats.map((item) => (
+          <Pressable
+            key={item.id}
+            style={styles.card}
+            onPress={() =>
+              router.push({ pathname: '/agency-message/[id]', params: { id: item.id } })
+            }>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{item.avatarLetter}</Text>
             </View>
@@ -39,9 +159,9 @@ export default function AgencyMessagesScreen() {
 
             <View style={styles.meta}>
               <Text style={styles.time}>{item.time}</Text>
-              {item.unreadCount ? (
+              {item.unread ? (
                 <View style={styles.unreadBadge}>
-                  <Text style={styles.unreadText}>{item.unreadCount}</Text>
+                  <Text style={styles.unreadText}>{item.unread}</Text>
                 </View>
               ) : null}
             </View>
@@ -83,6 +203,17 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 24,
     gap: 12,
+  },
+  loadingWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 24,
+  },
+  loadingText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#737373',
   },
   card: {
     minHeight: 98,

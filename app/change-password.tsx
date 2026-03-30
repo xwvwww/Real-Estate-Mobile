@@ -1,27 +1,70 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '@/contexts/AuthContext';
+import { changeCurrentUserPassword } from '@/lib/api';
+
+function passwordMeetsRequirements(value: string) {
+  return (
+    value.length >= 8 &&
+    /[a-z]/.test(value) &&
+    /[A-Z]/.test(value) &&
+    /\d/.test(value) &&
+    /[^A-Za-z0-9]/.test(value)
+  );
+}
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
+  const { session } = useAuth();
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [repeatPassword, setRepeatPassword] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const disabled = useMemo(() => {
-    if (!oldPassword || !newPassword || !repeatPassword) {
+    if (!session?.token || !oldPassword || !newPassword || !repeatPassword) {
       return true;
     }
-    if (newPassword.length < 6) {
+    if (!passwordMeetsRequirements(newPassword)) {
       return true;
     }
     if (newPassword !== repeatPassword) {
       return true;
     }
     return false;
-  }, [newPassword, oldPassword, repeatPassword]);
+  }, [newPassword, oldPassword, repeatPassword, session?.token]);
+
+  const onSubmit = async () => {
+    if (!session?.token || disabled || saving) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await changeCurrentUserPassword(
+        {
+          old_password: oldPassword,
+          new_password: newPassword,
+          new_password_confirmation: repeatPassword,
+        },
+        session.token
+      );
+
+      Alert.alert('Пароль обновлен', 'Новый пароль успешно сохранен.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } catch (error) {
+      Alert.alert(
+        'Не удалось изменить пароль',
+        error instanceof Error ? error.message : 'Попробуйте еще раз.'
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -53,9 +96,12 @@ export default function ChangePasswordScreen() {
             onChangeText={setNewPassword}
             secureTextEntry
             style={styles.input}
-            placeholder="Минимум 6 символов"
+            placeholder="Минимум 8 символов"
             placeholderTextColor="#939393"
           />
+          <Text style={styles.helperText}>
+            Минимум 8 символов, одна строчная, одна заглавная, цифра и спецсимвол.
+          </Text>
         </View>
 
         <View style={styles.field}>
@@ -68,10 +114,18 @@ export default function ChangePasswordScreen() {
             placeholder="Повторите новый пароль"
             placeholderTextColor="#939393"
           />
+          {repeatPassword.length > 0 && repeatPassword !== newPassword ? (
+            <Text style={styles.errorText}>Пароли не совпадают</Text>
+          ) : null}
         </View>
 
-        <Pressable style={[styles.primaryButton, disabled && styles.primaryButtonDisabled]} disabled={disabled}>
-          <Text style={[styles.primaryButtonText, disabled && styles.primaryButtonTextDisabled]}>Сохранить</Text>
+        <Pressable
+          style={[styles.primaryButton, (disabled || saving) && styles.primaryButtonDisabled]}
+          disabled={disabled || saving}
+          onPress={onSubmit}>
+          <Text style={[styles.primaryButtonText, (disabled || saving) && styles.primaryButtonTextDisabled]}>
+            {saving ? 'Сохраняем...' : 'Сохранить'}
+          </Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -114,6 +168,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     fontSize: 16,
     color: '#3A3A3A',
+  },
+  helperText: {
+    marginTop: 4,
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#8F8F8F',
+  },
+  errorText: {
+    marginTop: 4,
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#D14F4F',
   },
   primaryButton: {
     marginTop: 8,

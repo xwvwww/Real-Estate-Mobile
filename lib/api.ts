@@ -27,6 +27,18 @@ export type ApiSession = {
   user: ApiUser;
 };
 
+export type UpdateProfilePayload = {
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+};
+
+export type ChangePasswordPayload = {
+  old_password: string;
+  new_password: string;
+  new_password_confirmation: string;
+};
+
 export type ApiListingMedia = {
   id: number;
   listing_id: number;
@@ -310,6 +322,28 @@ export async function loginWithPassword(payload: LoginPayload) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateCurrentUserProfile(payload: UpdateProfilePayload, token: string) {
+  return requestJson<ApiUser>('/users/me', {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function changeCurrentUserPassword(payload: ChangePasswordPayload, token: string) {
+  return requestJson<{ message: string }>('/users/me/password', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(payload),
   });

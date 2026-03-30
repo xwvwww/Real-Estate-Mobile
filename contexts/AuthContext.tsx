@@ -9,6 +9,7 @@ type AuthContextValue = {
   isHydrated: boolean;
   signIn: (session: ApiSession) => Promise<void>;
   signOut: () => Promise<void>;
+  updateSessionUser: (user: ApiSession['user']) => Promise<void>;
 };
 
 const SESSION_STORAGE_KEY = 'real-estate-auth-session';
@@ -114,6 +115,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await writeSessionValue(null);
   };
 
+  const updateSessionUser = async (user: ApiSession['user']) => {
+    setSession((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const nextSession = {
+        ...current,
+        user,
+      };
+
+      void writeSessionValue(JSON.stringify(nextSession));
+      return nextSession;
+    });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -121,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isHydrated,
         signIn,
         signOut,
+        updateSessionUser,
       }}>
       {children}
     </AuthContext.Provider>

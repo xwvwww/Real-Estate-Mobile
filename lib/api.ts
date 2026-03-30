@@ -383,8 +383,14 @@ export async function fetchListings(filters: ListingFilters = {}) {
   return Array.isArray(payload) ? payload : [];
 }
 
-export async function fetchListingById(listingId: string | number) {
-  return requestJson<ApiListing>(`/listings/${encodeURIComponent(String(listingId))}`);
+export async function fetchListingById(listingId: string | number, token?: string) {
+  return requestJson<ApiListing>(`/listings/${encodeURIComponent(String(listingId))}`, {
+    headers: token
+      ? {
+          Authorization: `Bearer ${token}`,
+        }
+      : undefined,
+  });
 }
 
 export async function createListing(payload: CreateListingPayload, token: string) {
@@ -470,6 +476,21 @@ export async function fetchApplications(
   );
 
   return Array.isArray(payload) ? payload : [];
+}
+
+export async function updateApplicationStatus(
+  applicationId: string | number,
+  status: 'new' | 'review' | 'approved' | 'rejected',
+  token: string
+) {
+  return requestJson<ApiApplication>(`/applications/${encodeURIComponent(String(applicationId))}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ status }),
+  });
 }
 
 export async function fetchChats(token: string) {

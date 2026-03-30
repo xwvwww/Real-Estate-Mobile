@@ -2,6 +2,8 @@ import type { ApiApplication, ApiListing } from '@/lib/api';
 
 export type UserRequestStatus = 'Новая' | 'В обработке' | 'Одобрена' | 'Отклонена';
 
+export type CompanyRequestStatus = UserRequestStatus;
+
 export type UserRequestViewModel = {
   id: string;
   listingId: string;
@@ -14,6 +16,24 @@ export type UserRequestViewModel = {
   phone: string;
   note: string;
   response?: string;
+  listing?: ApiListing | null;
+};
+
+export type CompanyRequestViewModel = {
+  id: string;
+  listingId: string;
+  title: string;
+  applicantName: string;
+  date: string;
+  status: CompanyRequestStatus;
+  color: string;
+  bg: string;
+  phone: string;
+  email: string;
+  summary: string;
+  comment: string;
+  dealType: string;
+  details: Array<{ label: string; value: string }>;
   listing?: ApiListing | null;
 };
 
@@ -84,6 +104,76 @@ export function mapApplicationToUserRequest(
     phone: application.phone,
     note: statusMeta.note,
     response: statusMeta.response,
+    listing: listing || null,
+  };
+}
+
+function formatYesNo(value?: boolean | null) {
+  if (typeof value !== 'boolean') {
+    return 'Не указано';
+  }
+
+  return value ? 'Да' : 'Нет';
+}
+
+function formatDealType(value: string) {
+  return value === 'rent' ? 'Аренда' : value === 'sale' ? 'Покупка' : 'Не указано';
+}
+
+function formatPurchaseTerm(value?: string | null) {
+  if (!value) {
+    return 'Не указано';
+  }
+
+  return value
+    .replaceAll('_', ' ')
+    .replace(/^\w/, (char) => char.toUpperCase());
+}
+
+export function mapApplicationToCompanyRequest(
+  application: ApiApplication,
+  listing?: ApiListing | null
+): CompanyRequestViewModel {
+  const statusMeta = mapStatus(application.status);
+
+  return {
+    id: String(application.id),
+    listingId: String(application.listing_id),
+    title: listing?.title || `Объект #${application.listing_id}`,
+    applicantName: application.full_name,
+    date: formatDate(application.created_at),
+    status: statusMeta.status,
+    color: statusMeta.color,
+    bg: statusMeta.bg,
+    phone: application.phone,
+    email: application.email,
+    summary: application.comment?.trim() || 'Клиент ожидает обратную связь по отправленной заявке.',
+    comment: application.comment?.trim() || 'Комментарий не указан',
+    dealType: formatDealType(application.deal_type),
+    details: [
+      { label: 'Телефон', value: application.phone },
+      { label: 'Email', value: application.email },
+      { label: 'Сделка', value: formatDealType(application.deal_type) },
+      {
+        label: 'Количество жильцов',
+        value:
+          typeof application.occupant_count === 'number'
+            ? String(application.occupant_count)
+            : 'Не указано',
+      },
+      { label: 'С детьми', value: formatYesNo(application.has_children) },
+      { label: 'С животными', value: formatYesNo(application.has_pets) },
+      { label: 'Студент', value: formatYesNo(application.is_student) },
+      {
+        label: 'Срок аренды',
+        value:
+          typeof application.stay_term_months === 'number'
+            ? `${application.stay_term_months} мес.`
+            : 'Не указано',
+      },
+      { label: 'Нужна ипотека', value: formatYesNo(application.needs_mortgage) },
+      { label: 'Срок покупки', value: formatPurchaseTerm(application.purchase_term) },
+    ],
     listing: listing || null,
   };
 }

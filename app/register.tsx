@@ -3,6 +3,8 @@ import {
   Alert,
   Animated,
   Easing,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -54,6 +56,85 @@ type RoleItemProps = {
   compact?: boolean;
 };
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_REQUIREMENTS = [
+  'Минимум 8 символов',
+  'Одна строчная буква',
+  'Одна заглавная буква',
+  'Одна цифра',
+  'Один спецсимвол',
+] as const;
+
+function normalizeEmail(value: string) {
+  return value.replace(/\s+/g, '').toLowerCase();
+}
+
+function formatPhone(value: string) {
+  const rawDigits = value.replace(/\D/g, '');
+  const normalizedDigits = rawDigits.startsWith('8') ? `7${rawDigits.slice(1)}` : rawDigits;
+  const digits = normalizedDigits.startsWith('7')
+    ? normalizedDigits.slice(0, 11)
+    : `7${normalizedDigits}`.slice(0, 11);
+  const parts = [
+    digits.slice(1, 4),
+    digits.slice(4, 7),
+    digits.slice(7, 9),
+    digits.slice(9, 11),
+  ].filter(Boolean);
+
+  return digits.length === 0 ? '' : `+7 ${parts.join(' ')}`.trim();
+}
+
+function isValidEmail(value: string) {
+  return EMAIL_REGEX.test(normalizeEmail(value));
+}
+
+function isValidPhone(value: string) {
+  const digits = value.replace(/\D/g, '');
+  return digits.length === 11 && (digits.startsWith('8') || digits.startsWith('7'));
+}
+
+function PasswordRequirementsHint({ progress }: { progress: Animated.Value }) {
+  return (
+    <Animated.View
+      style={[
+        {
+          opacity: progress,
+          maxHeight: progress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 132],
+          }),
+          marginTop: progress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 10],
+          }),
+          marginBottom: progress.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 10],
+          }),
+          transform: [
+            {
+              translateY: progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: [-8, 0],
+              }),
+            },
+          ],
+        },
+      ]}>
+      <View style={styles.passwordHintCard}>
+        <Text style={styles.passwordHintTitle}>Пароль должен содержать:</Text>
+        {PASSWORD_REQUIREMENTS.map((item) => (
+          <View key={item} style={styles.passwordHintRow}>
+            <View style={styles.passwordHintDot} />
+            <Text style={styles.passwordHintText}>{item}</Text>
+          </View>
+        ))}
+      </View>
+    </Animated.View>
+  );
+}
+
 function RoleItem({ title, description, active, onPress, icon, compact }: RoleItemProps) {
   return (
     <Pressable style={[styles.roleCard, active && styles.roleCardActive]} onPress={onPress}>
@@ -76,6 +157,14 @@ export default function RegisterScreen() {
   const [repeatPasswordVisible, setRepeatPasswordVisible] = useState(false);
   const [agencyPasswordVisible, setAgencyPasswordVisible] = useState(false);
   const [agencyRepeatPasswordVisible, setAgencyRepeatPasswordVisible] = useState(false);
+  const [userPasswordFocused, setUserPasswordFocused] = useState(false);
+  const [userRepeatPasswordFocused, setUserRepeatPasswordFocused] = useState(false);
+  const [companyPasswordFocused, setCompanyPasswordFocused] = useState(false);
+  const [companyRepeatPasswordFocused, setCompanyRepeatPasswordFocused] = useState(false);
+  const [userEmailTouched, setUserEmailTouched] = useState(false);
+  const [userPhoneTouched, setUserPhoneTouched] = useState(false);
+  const [companyEmailTouched, setCompanyEmailTouched] = useState(false);
+  const [companyPhoneTouched, setCompanyPhoneTouched] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [agencyDocName, setAgencyDocName] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -100,6 +189,8 @@ export default function RegisterScreen() {
     passwordConfirmation: '',
   });
   const transition = useRef(new Animated.Value(1)).current;
+  const userPasswordHint = useRef(new Animated.Value(0)).current;
+  const companyPasswordHint = useRef(new Animated.Value(0)).current;
   const stepTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const updateUserForm = <K extends keyof UserForm>(field: K, value: UserForm[K]) => {
@@ -120,6 +211,14 @@ export default function RegisterScreen() {
 
   const isUserStepTwo = step === 2 && role === 'user';
   const isCompanyStepTwo = step === 2 && (role === 'agency' || role === 'developer');
+  const showUserPasswordHint = userPasswordFocused || userRepeatPasswordFocused;
+  const showCompanyPasswordHint = companyPasswordFocused || companyRepeatPasswordFocused;
+  const userEmailValid = userForm.email.trim().length === 0 || isValidEmail(userForm.email);
+  const userPhoneValid = userForm.phone.trim().length === 0 || isValidPhone(userForm.phone);
+  const companyEmailValid =
+    companyForm.companyEmail.trim().length === 0 || isValidEmail(companyForm.companyEmail);
+  const companyPhoneValid =
+    companyForm.companyPhone.trim().length === 0 || isValidPhone(companyForm.companyPhone);
 
   const pickAgencyDocument = async () => {
     const result = await DocumentPicker.getDocumentAsync({
@@ -138,6 +237,16 @@ export default function RegisterScreen() {
 
     if (userForm.password !== userForm.passwordConfirmation) {
       Alert.alert('Пароли не совпадают', 'Проверьте пароль и повторите ввод.');
+      return;
+    }
+
+    if (!isValidEmail(userForm.email)) {
+      Alert.alert('Некорректный email', 'Введите корректный адрес электронной почты.');
+      return;
+    }
+
+    if (!isValidPhone(userForm.phone)) {
+      Alert.alert('Некорректный телефон', 'Введите номер в формате 8 777 123 12 12.');
       return;
     }
 
@@ -178,6 +287,16 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (!isValidEmail(companyForm.companyEmail)) {
+      Alert.alert('Некорректный email', 'Введите корректный email компании.');
+      return;
+    }
+
+    if (!isValidPhone(companyForm.companyPhone)) {
+      Alert.alert('Некорректный телефон', 'Введите номер компании в формате 8 777 123 12 12.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -214,6 +333,8 @@ export default function RegisterScreen() {
     !isSubmitting &&
     userForm.firstName.trim().length > 0 &&
     userForm.lastName.trim().length > 0 &&
+    userEmailValid &&
+    userPhoneValid &&
     userForm.email.trim().length > 0 &&
     userForm.phone.trim().length > 0 &&
     userForm.password.trim().length > 0 &&
@@ -225,6 +346,8 @@ export default function RegisterScreen() {
     companyForm.companyName.trim().length > 0 &&
     companyForm.registrationNumber.trim().length > 0 &&
     companyForm.city.trim().length > 0 &&
+    companyEmailValid &&
+    companyPhoneValid &&
     companyForm.companyEmail.trim().length > 0 &&
     companyForm.companyPhone.trim().length > 0 &&
     companyForm.firstName.trim().length > 0 &&
@@ -249,6 +372,24 @@ export default function RegisterScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    Animated.timing(userPasswordHint, {
+      toValue: showUserPasswordHint ? 1 : 0,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [showUserPasswordHint, userPasswordHint]);
+
+  useEffect(() => {
+    Animated.timing(companyPasswordHint, {
+      toValue: showCompanyPasswordHint ? 1 : 0,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [companyPasswordHint, showCompanyPasswordHint]);
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
@@ -258,20 +399,28 @@ export default function RegisterScreen() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Animated.View
-          style={{
-            opacity: transition,
-            transform: [
-              {
-                translateY: transition.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [8, 0],
-                }),
-              },
-            ],
-          }}
-        >
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 18 : 0}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}>
+          <Animated.View
+            style={{
+              opacity: transition,
+              transform: [
+                {
+                  translateY: transition.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [8, 0],
+                  }),
+                },
+              ],
+            }}
+          >
           {isUserStepTwo ? (
           <>
             <Text style={styles.stepText}>Шаг 2 из 2</Text>
@@ -301,23 +450,33 @@ export default function RegisterScreen() {
 
             <Text style={styles.label}>Email*</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, userEmailTouched && !userEmailValid && styles.inputError]}
               placeholder="seller@example.kz"
               placeholderTextColor={PLACEHOLDER_COLOR}
               keyboardType="email-address"
               autoCapitalize="none"
               value={userForm.email}
-              onChangeText={(value) => updateUserForm('email', value)}
+              onChangeText={(value) => updateUserForm('email', normalizeEmail(value))}
+              onBlur={() => setUserEmailTouched(true)}
             />
+            {userEmailTouched && !userEmailValid ? (
+              <Text style={styles.errorText}>Введите корректный email, например name@example.com</Text>
+            ) : null}
 
             <Text style={styles.label}>Телефон*</Text>
             <TextInput
-              style={styles.input}
-              placeholder="+7 700 000 00 00"
+              style={[styles.input, userPhoneTouched && !userPhoneValid && styles.inputError]}
+              placeholder="+7 777 123 12 12"
               placeholderTextColor={PLACEHOLDER_COLOR}
               value={userForm.phone}
-              onChangeText={(value) => updateUserForm('phone', value)}
+              onChangeText={(value) => updateUserForm('phone', formatPhone(value))}
+              keyboardType="phone-pad"
+              maxLength={16}
+              onBlur={() => setUserPhoneTouched(true)}
             />
+            {userPhoneTouched && !userPhoneValid ? (
+              <Text style={styles.errorText}>Введите номер в формате +7 777 123 12 12</Text>
+            ) : null}
 
             <Text style={styles.label}>Пароль*</Text>
             <View style={styles.passwordWrap}>
@@ -328,6 +487,8 @@ export default function RegisterScreen() {
                 secureTextEntry={!passwordVisible}
                 value={userForm.password}
                 onChangeText={(value) => updateUserForm('password', value)}
+                onFocus={() => setUserPasswordFocused(true)}
+                onBlur={() => setUserPasswordFocused(false)}
               />
               <Pressable onPress={() => setPasswordVisible((v) => !v)} style={styles.eyeButton}>
                 <Ionicons
@@ -337,6 +498,7 @@ export default function RegisterScreen() {
                 />
               </Pressable>
             </View>
+            <PasswordRequirementsHint progress={userPasswordHint} />
 
             <Text style={styles.label}>Повторите пароль*</Text>
             <View style={styles.passwordWrap}>
@@ -347,6 +509,8 @@ export default function RegisterScreen() {
                 secureTextEntry={!repeatPasswordVisible}
                 value={userForm.passwordConfirmation}
                 onChangeText={(value) => updateUserForm('passwordConfirmation', value)}
+                onFocus={() => setUserRepeatPasswordFocused(true)}
+                onBlur={() => setUserRepeatPasswordFocused(false)}
               />
               <Pressable
                 onPress={() => setRepeatPasswordVisible((v) => !v)}
@@ -433,23 +597,33 @@ export default function RegisterScreen() {
 
             <Text style={styles.label}>Email компании*</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, companyEmailTouched && !companyEmailValid && styles.inputError]}
               placeholder="info@company.kz"
               placeholderTextColor={PLACEHOLDER_COLOR}
               keyboardType="email-address"
               autoCapitalize="none"
               value={companyForm.companyEmail}
-              onChangeText={(value) => updateCompanyForm('companyEmail', value)}
+              onChangeText={(value) => updateCompanyForm('companyEmail', normalizeEmail(value))}
+              onBlur={() => setCompanyEmailTouched(true)}
             />
+            {companyEmailTouched && !companyEmailValid ? (
+              <Text style={styles.errorText}>Введите корректный email компании</Text>
+            ) : null}
 
             <Text style={styles.label}>Телефон компании*</Text>
             <TextInput
-              style={styles.input}
-              placeholder="+7 700 000 00 00"
+              style={[styles.input, companyPhoneTouched && !companyPhoneValid && styles.inputError]}
+              placeholder="+7 777 123 12 12"
               placeholderTextColor={PLACEHOLDER_COLOR}
               value={companyForm.companyPhone}
-              onChangeText={(value) => updateCompanyForm('companyPhone', value)}
+              onChangeText={(value) => updateCompanyForm('companyPhone', formatPhone(value))}
+              keyboardType="phone-pad"
+              maxLength={16}
+              onBlur={() => setCompanyPhoneTouched(true)}
             />
+            {companyPhoneTouched && !companyPhoneValid ? (
+              <Text style={styles.errorText}>Введите номер компании в формате +7 777 123 12 12</Text>
+            ) : null}
 
             <Text style={styles.sectionTitle}>Контактное лицо</Text>
 
@@ -494,6 +668,8 @@ export default function RegisterScreen() {
                 secureTextEntry={!agencyPasswordVisible}
                 value={companyForm.password}
                 onChangeText={(value) => updateCompanyForm('password', value)}
+                onFocus={() => setCompanyPasswordFocused(true)}
+                onBlur={() => setCompanyPasswordFocused(false)}
               />
               <Pressable
                 onPress={() => setAgencyPasswordVisible((v) => !v)}
@@ -506,6 +682,7 @@ export default function RegisterScreen() {
                 />
               </Pressable>
             </View>
+            <PasswordRequirementsHint progress={companyPasswordHint} />
 
             <Text style={styles.label}>Повторите пароль*</Text>
             <View style={styles.passwordWrap}>
@@ -516,6 +693,8 @@ export default function RegisterScreen() {
                 secureTextEntry={!agencyRepeatPasswordVisible}
                 value={companyForm.passwordConfirmation}
                 onChangeText={(value) => updateCompanyForm('passwordConfirmation', value)}
+                onFocus={() => setCompanyRepeatPasswordFocused(true)}
+                onBlur={() => setCompanyRepeatPasswordFocused(false)}
               />
               <Pressable
                 onPress={() => setAgencyRepeatPasswordVisible((v) => !v)}
@@ -557,6 +736,13 @@ export default function RegisterScreen() {
                 доступна после подтверждения.
               </Text>
             </View>
+
+            <Pressable style={styles.termsRow} onPress={() => setAcceptTerms((v) => !v)}>
+              <AppCheckbox checked={acceptTerms} />
+              <Text style={styles.agreeText}>
+                Я принимаю условия сервиса и соглашаюсь на обработку персональных данных.
+              </Text>
+            </Pressable>
 
             <View style={styles.actionsRow}>
               <Pressable style={styles.secondaryButton} onPress={() => setStep(1)}>
@@ -611,13 +797,17 @@ export default function RegisterScreen() {
             </View>
           </>
           )}
-        </Animated.View>
-      </ScrollView>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   safe: {
     flex: 1,
     backgroundColor: '#F3F3F3',
@@ -640,7 +830,7 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     paddingTop: 34,
-    paddingBottom: 24,
+    paddingBottom: 120,
   },
   stepText: {
     textAlign: 'center',
@@ -747,6 +937,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#2A2A2A',
   },
+  inputError: {
+    borderWidth: 1,
+    borderColor: '#E36D6D',
+    backgroundColor: '#FFF5F5',
+  },
+  errorText: {
+    marginTop: 6,
+    fontSize: 12,
+    lineHeight: 17,
+    color: '#D14F4F',
+  },
   passwordWrap: {
     height: 48,
     borderRadius: 12,
@@ -755,6 +956,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingLeft: 14,
     paddingRight: 12,
+  },
+  passwordHintCard: {
+    overflow: 'hidden',
+    borderRadius: 12,
+    backgroundColor: '#EEF4FF',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  passwordHintTitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+    color: '#4267B2',
+    marginBottom: 6,
+  },
+  passwordHintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  passwordHintDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#6F9BFF',
+  },
+  passwordHintText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#5B6480',
   },
   uploadButton: {
     height: 48,

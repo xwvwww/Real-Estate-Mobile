@@ -6,6 +6,7 @@ import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { USER_LISTINGS } from '@/constants/userListings';
 import { StatusBadge } from '@/components/StatusBadge';
+import { useAuth } from '@/contexts/AuthContext';
 import { useFavoriteIds } from '@/stores/favoritesStore';
 
 type RequestItem = {
@@ -52,7 +53,8 @@ const RECENT_ITEMS = USER_LISTINGS.slice(0, 3);
 
 export default function UserDashboardScreen() {
   const router = useRouter();
-  const favoriteIds = useFavoriteIds();
+  const { session } = useAuth();
+  const favoriteIds = useFavoriteIds(session);
   const catalogScale = useRef(new Animated.Value(1)).current;
   const transitionOpacity = useRef(new Animated.Value(0)).current;
 

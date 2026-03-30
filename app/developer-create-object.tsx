@@ -4,8 +4,7 @@ import { createListing, uploadListingMedia, type ListingUploadFile } from '@/lib
 import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert } from 'react-native';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const PROPERTY_TYPES = ['Квартира', 'Студия', 'Пентхаус'] as const;

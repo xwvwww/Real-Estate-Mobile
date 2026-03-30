@@ -1,16 +1,84 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyState } from '@/components/EmptyState';
 import { CARD_RADIUS, ELEVATED_CARD_SHADOW } from '@/constants/ui';
 import { USER_LISTINGS } from '@/constants/userListings';
+import { fetchFavorites, fetchListings } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  mapApiFavoriteToCatalogListing,
+  mapApiListingToCatalogListing,
+  mapUserListingToCatalogListing,
+  type CatalogListing,
+} from '@/lib/listings';
 import { useFavoriteIds } from '@/stores/favoritesStore';
+
+const LOCAL_FAVORITE_CATALOG = USER_LISTINGS.map((item, index) => mapUserListingToCatalogListing(item, index));
 
 export default function FavoritesScreen() {
   const router = useRouter();
-  const favoriteIds = useFavoriteIds();
-  const favoriteItems = USER_LISTINGS.filter((item) => favoriteIds.includes(item.id));
+  const { session } = useAuth();
+  const favoriteIds = useFavoriteIds(session);
+  const [catalogItems, setCatalogItems] = useState<CatalogListing[]>(LOCAL_FAVORITE_CATALOG);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadFavorites = async () => {
+      const [favoriteItems, buyItems, rentItems] = await Promise.all([
+        session?.token ? fetchFavorites(session.token) : Promise.resolve([]),
+        fetchListings({ dealType: 'buy' }),
+        fetchListings({ dealType: 'rent' }),
+      ]);
+
+      if (cancelled) {
+        return;
+      }
+
+      const mergedById = new Map<string, CatalogListing>();
+
+      LOCAL_FAVORITE_CATALOG.forEach((item) => {
+        mergedById.set(item.id, item);
+      });
+
+      favoriteItems.forEach((item, index) => {
+        const mapped = mapApiFavoriteToCatalogListing(item, index);
+        mergedById.set(mapped.id, mapped);
+      });
+
+      [...buyItems, ...rentItems].forEach((item, index) => {
+        const mapped = mapApiListingToCatalogListing(item, index);
+        mergedById.set(mapped.id, mapped);
+      });
+
+      setCatalogItems(Array.from(mergedById.values()));
+    };
+
+    loadFavorites()
+      .then(() => {
+        if (cancelled) {
+          return;
+        }
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+        setCatalogItems(LOCAL_FAVORITE_CATALOG);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.token]);
+
+  const favoriteItems = useMemo(
+    () => catalogItems.filter((item) => favoriteIds.includes(item.id)),
+    [catalogItems, favoriteIds]
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>

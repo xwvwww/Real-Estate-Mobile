@@ -34,6 +34,24 @@ export type ApiListingMedia = {
   position: number;
 };
 
+export type ApiFavoriteListing = {
+  id: number;
+  title: string;
+  city: string;
+  address: string;
+  price: number;
+  property_type: string;
+  deal_type: 'rent' | 'sale' | string;
+  status: string;
+  company_name?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  rooms?: number | null;
+  area?: number | null;
+  floor?: number | null;
+  media?: ApiListingMedia[];
+};
+
 export type ApiRentConstraints = {
   listing_id: number;
   allow_children: boolean;
@@ -298,6 +316,35 @@ export async function createListing(payload: CreateListingPayload, token: string
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchFavorites(token: string) {
+  const payload = await requestJson<ApiFavoriteListing[] | null>('/favorites', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return Array.isArray(payload) ? payload : [];
+}
+
+export async function addFavorite(listingId: string | number, token: string) {
+  return requestNoContent(`/favorites/${encodeURIComponent(String(listingId))}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export async function removeFavorite(listingId: string | number, token: string) {
+  return requestNoContent(`/favorites/${encodeURIComponent(String(listingId))}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
 }
 

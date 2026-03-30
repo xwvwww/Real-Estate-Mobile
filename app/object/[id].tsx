@@ -2,19 +2,28 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyState } from '@/components/EmptyState';
 import UserMapCard from '@/components/UserMapCard';
+import { useAuth } from '@/contexts/AuthContext';
 import { fetchListingById } from '@/lib/api';
-import { mapApiListingToCatalogListing, type CatalogListing } from '@/lib/listings';
+import {
+  mapApiListingToCatalogListing,
+  mapUserListingToCatalogListing,
+  type CatalogListing,
+} from '@/lib/listings';
 import { getListingById } from '@/constants/userListings';
 import { toggleFavorite, useIsFavorite } from '@/stores/favoritesStore';
 
 export default function ObjectDetailsScreen() {
   const router = useRouter();
+  const { session } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const localListing = getListingById(id);
+  const localListing = useMemo(() => {
+    const item = getListingById(id);
+    return item ? mapUserListingToCatalogListing(item) : null;
+  }, [id]);
   const isRemoteListingId = Boolean(id && /^\d+$/.test(id));
   const [remoteListing, setRemoteListing] = useState<CatalogListing | null>(null);
   const [loading, setLoading] = useState(isRemoteListingId);
@@ -62,7 +71,7 @@ export default function ObjectDetailsScreen() {
   }, [id, isRemoteListingId]);
 
   const listing = remoteListing ?? localListing;
-  const isFavorite = useIsFavorite(listing?.id ?? '');
+  const isFavorite = useIsFavorite(listing?.id ?? '', session);
 
   const listingImages = useMemo(() => {
     if (!listing) {
@@ -113,6 +122,21 @@ export default function ObjectDetailsScreen() {
     }
   };
 
+  const onToggleFavorite = async () => {
+    if (!listing) {
+      return;
+    }
+
+    try {
+      await toggleFavorite(listing.id, session);
+    } catch (error) {
+      Alert.alert(
+        'Не удалось обновить избранное',
+        error instanceof Error ? error.message : 'Попробуйте ещё раз.'
+      );
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.heroWrap}>
@@ -126,7 +150,7 @@ export default function ObjectDetailsScreen() {
           <Pressable style={styles.roundBtn} onPress={onShare}>
             <Ionicons name="share-social-outline" size={20} color="#3A3A3A" />
           </Pressable>
-          <Pressable style={styles.roundBtn} onPress={() => toggleFavorite(listing.id)}>
+          <Pressable style={styles.roundBtn} onPress={onToggleFavorite}>
             <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={20} color={isFavorite ? '#F25C7B' : '#3A3A3A'} />
           </Pressable>
         </View>

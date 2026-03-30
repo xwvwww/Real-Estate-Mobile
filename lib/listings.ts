@@ -1,5 +1,6 @@
 import type { ImageSourcePropType } from 'react-native';
-import type { ApiListing } from '@/lib/api';
+import type { UserListing } from '@/constants/userListings';
+import type { ApiFavoriteListing, ApiListing } from '@/lib/api';
 
 export type CatalogDealType = 'buy' | 'rent';
 
@@ -66,6 +67,34 @@ function toImageSources(listing: ApiListing, index: number) {
   return [FALLBACK_IMAGES[index % FALLBACK_IMAGES.length]];
 }
 
+export function mapUserListingToCatalogListing(listing: UserListing, index = 0): CatalogListing {
+  const fallbackImage = FALLBACK_IMAGES[index % FALLBACK_IMAGES.length];
+  const image = listing.image ?? fallbackImage;
+
+  return {
+    id: listing.id,
+    numericId: Number.isFinite(Number(listing.id)) ? Number(listing.id) : index,
+    title: listing.title,
+    propertyType: listing.type,
+    dealType: listing.dealType,
+    city: listing.city,
+    priceValue: listing.priceValue,
+    price: listing.price,
+    address: listing.address || 'Адрес не указан',
+    roomsLabel: listing.beds || '—',
+    areaLabel: listing.area || '—',
+    floorLabel: listing.floor || '—',
+    latitude: typeof listing.latitude === 'number' ? listing.latitude : undefined,
+    longitude: typeof listing.longitude === 'number' ? listing.longitude : undefined,
+    image,
+    images: [image],
+    description: listing.description || 'Описание отсутствует',
+    features: listing.features ?? [],
+    companyName: undefined,
+    status: 'local',
+  };
+}
+
 export function mapApiListingToCatalogListing(listing: ApiListing, index = 0): CatalogListing {
   const images = toImageSources(listing, index);
   const priceValue = listing.price;
@@ -89,6 +118,49 @@ export function mapApiListingToCatalogListing(listing: ApiListing, index = 0): C
     images,
     description: listing.description || 'Описание отсутствует',
     features: buildFeatures(listing),
+    companyName: listing.company_name || undefined,
+    status: listing.status,
+  };
+}
+
+export function mapApiFavoriteToCatalogListing(listing: ApiFavoriteListing, index = 0): CatalogListing {
+  const images = toImageSources(
+    {
+      ...listing,
+      company_id: 0,
+      description: '',
+      created_at: '',
+      updated_at: '',
+    } as ApiListing,
+    index
+  );
+  const priceValue = listing.price;
+
+  return {
+    id: String(listing.id),
+    numericId: listing.id,
+    title: listing.title,
+    propertyType: listing.property_type,
+    dealType: listing.deal_type === 'rent' ? 'rent' : 'buy',
+    city: listing.city,
+    priceValue,
+    price: formatPrice(priceValue),
+    address: listing.address || 'Адрес не указан',
+    roomsLabel: typeof listing.rooms === 'number' ? String(listing.rooms) : '—',
+    areaLabel: typeof listing.area === 'number' ? `${listing.area} м²` : '—',
+    floorLabel: typeof listing.floor === 'number' ? `${listing.floor} этаж` : '—',
+    latitude: typeof listing.latitude === 'number' ? listing.latitude : undefined,
+    longitude: typeof listing.longitude === 'number' ? listing.longitude : undefined,
+    image: images[0],
+    images,
+    description: 'Описание отсутствует',
+    features: buildFeatures({
+      ...listing,
+      company_id: 0,
+      description: '',
+      created_at: '',
+      updated_at: '',
+    } as ApiListing),
     companyName: listing.company_name || undefined,
     status: listing.status,
   };

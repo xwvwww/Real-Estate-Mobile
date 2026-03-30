@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   ActivityIndicator,
   Animated,
   Modal,
@@ -17,8 +18,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AppDropdown from '@/components/AppDropdown';
 import { EmptyState } from '@/components/EmptyState';
 import UserMapCard, { type MapRegion, type UserMapMarker } from '@/components/UserMapCard';
+import { useAuth } from '@/contexts/AuthContext';
 import { fetchListings } from '@/lib/api';
-import { mapApiListingToCatalogListing, type CatalogListing } from '@/lib/listings';
+import { mapApiListingToCatalogListing, mapUserListingToCatalogListing, type CatalogListing } from '@/lib/listings';
+import { USER_LISTINGS } from '@/constants/userListings';
 import { toggleFavorite, useIsFavorite } from '@/stores/favoritesStore';
 
 type ObjectType = 'all' | 'Квартира' | 'Студия' | 'Пентхаус' | 'Дом' | 'Новостройка';
@@ -29,6 +32,8 @@ const DEFAULT_REGION: MapRegion = {
   latitudeDelta: 16,
   longitudeDelta: 16,
 };
+
+const FALLBACK_CATALOG_LISTINGS = USER_LISTINGS.map((item, index) => mapUserListingToCatalogListing(item, index));
 
 function isInBounds(item: CatalogListing, region: MapRegion) {
   const latMin = region.latitude - region.latitudeDelta / 2;
@@ -67,15 +72,18 @@ function StatRow({ rooms, area, floor }: { rooms: string; area: string; floor: s
 function ListingCard({
   listing,
   onPressDetails,
+  onToggleFavorite: onToggleFavoritePress,
 }: {
   listing: CatalogListing;
   onPressDetails: () => void;
+  onToggleFavorite: (listingId: string) => void;
 }) {
-  const isFavorite = useIsFavorite(listing.id);
+  const { session } = useAuth();
+  const isFavorite = useIsFavorite(listing.id, session);
   const heartScale = useRef(new Animated.Value(1)).current;
 
-  const onToggleFavorite = () => {
-    toggleFavorite(listing.id);
+  const handleToggleFavorite = () => {
+    onToggleFavoritePress(listing.id);
     heartScale.setValue(0.82);
     Animated.spring(heartScale, {
       toValue: 1,
@@ -96,7 +104,7 @@ function ListingCard({
           style={styles.favoriteCircle}
           onPress={(event) => {
             event.stopPropagation();
-            onToggleFavorite();
+            handleToggleFavorite();
           }}>
           <Animated.View style={{ transform: [{ scale: heartScale }] }}>
             <Ionicons
@@ -128,6 +136,7 @@ function ListingCard({
 
 export default function UserCatalogScreen() {
   const router = useRouter();
+  const { session } = useAuth();
   const [dealType, setDealType] = useState<'buy' | 'rent'>('buy');
   const segmentAnim = useRef(new Animated.Value(0)).current;
   const [segmentWidth, setSegmentWidth] = useState(0);
@@ -160,7 +169,8 @@ export default function UserCatalogScreen() {
         if (cancelled) {
           return;
         }
-        setCatalogListings(items.map((item, index) => mapApiListingToCatalogListing(item, index)));
+        const mappedItems = items.map((item, index) => mapApiListingToCatalogListing(item, index));
+        setCatalogListings(mappedItems.length > 0 ? mappedItems : FALLBACK_CATALOG_LISTINGS);
       })
       .catch((error: unknown) => {
         if (cancelled) {
@@ -232,7 +242,7 @@ export default function UserCatalogScreen() {
       }
       return true;
     });
-  }, [areaFilterRegion, catalogListings]);
+  }, [areaFilterRegion, catalogListings, city, objectType, priceFrom, priceTo]);
 
   const markers = useMemo<UserMapMarker[]>(
     () =>
@@ -290,6 +300,17 @@ export default function UserCatalogScreen() {
       : 'Объекты по Казахстану';
 
   const showNoResults = !loading && !loadError && filteredListings.length === 0;
+
+  const handleToggleFavorite = async (listingId: string) => {
+    try {
+      await toggleFavorite(listingId, session);
+    } catch (error) {
+      Alert.alert(
+        'Не удалось обновить избранное',
+        error instanceof Error ? error.message : 'Попробуйте ещё раз.'
+      );
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -387,6 +408,7 @@ export default function UserCatalogScreen() {
               <ListingCard
                 key={listing.id}
                 listing={listing}
+                onToggleFavorite={handleToggleFavorite}
                 onPressDetails={() =>
                   router.push({ pathname: '/object/[id]', params: { id: listing.id } })
                 }

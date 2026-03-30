@@ -199,6 +199,49 @@ export type ApiApplication = {
   updated_at: string;
 };
 
+export type ApiChatSummary = {
+  application_id: number;
+  listing_title: string;
+  company_name: string;
+  last_message: string;
+  last_message_at: string;
+  is_unread: boolean;
+};
+
+export type ApiApplicationMessage = {
+  id: number;
+  application_id: number;
+  sender_user_id?: number | null;
+  body: string;
+  created_at: string;
+};
+
+export type ApiDashboardFavoriteListing = {
+  listing_id: number;
+  title: string;
+  city: string;
+  price: number;
+  area?: number | null;
+  cover_url?: string;
+  created_at: string;
+};
+
+export type ApiDashboardApplicationSummary = {
+  id: number;
+  listing_title: string;
+  company_name: string;
+  status: string;
+  updated_at: string;
+};
+
+export type ApiDashboardOverview = {
+  favorites_count: number;
+  active_applications_count: number;
+  unread_messages_count: number;
+  recent_listings: ApiDashboardFavoriteListing[];
+  recent_applications: ApiDashboardApplicationSummary[];
+};
+
 const DEFAULT_API_URL = 'http://localhost:8080/v1';
 
 export const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL?.trim() || DEFAULT_API_URL).replace(
@@ -427,6 +470,74 @@ export async function fetchApplications(
   );
 
   return Array.isArray(payload) ? payload : [];
+}
+
+export async function fetchChats(token: string) {
+  const payload = await requestJson<ApiChatSummary[] | null>('/chats', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return Array.isArray(payload) ? payload : [];
+}
+
+export async function fetchApplicationMessages(
+  applicationId: string | number,
+  token: string,
+  filters: { limit?: number; offset?: number } = {}
+) {
+  const params = new URLSearchParams();
+
+  if (typeof filters.limit === 'number') {
+    params.set('limit', String(filters.limit));
+  }
+  if (typeof filters.offset === 'number') {
+    params.set('offset', String(filters.offset));
+  }
+
+  const query = params.toString();
+  const payload = await requestJson<ApiApplicationMessage[] | null>(
+    query
+      ? `/applications/${encodeURIComponent(String(applicationId))}/messages?${query}`
+      : `/applications/${encodeURIComponent(String(applicationId))}/messages`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return Array.isArray(payload) ? payload : [];
+}
+
+export async function createApplicationMessage(
+  applicationId: string | number,
+  body: string,
+  token: string
+) {
+  return requestJson<ApiApplicationMessage>(
+    `/applications/${encodeURIComponent(String(applicationId))}/messages`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ body }),
+    }
+  );
+}
+
+export async function fetchDashboardOverview(token: string) {
+  return requestJson<ApiDashboardOverview>('/dashboard/overview', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 }
 
 export type ListingUploadFile = {

@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,6 +14,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AppDropdown from '@/components/AppDropdown';
 import AppCheckbox from '@/components/AppCheckbox';
 import { getListingById } from '@/constants/userListings';
+import { useAuth } from '@/contexts/AuthContext';
+import { createApplication, fetchListingById } from '@/lib/api';
+import { mapApiListingToCatalogListing } from '@/lib/listings';
 
 const LEASE_TERMS = ['3-6 месяцев', '6-12 месяцев', '1-2 года', 'Более 2 лет'];
 const GENDERS = ['М', 'Ж', 'Другое'] as const;
@@ -21,8 +25,12 @@ type Gender = (typeof GENDERS)[number];
 
 export default function ObjectApplicationScreen() {
   const router = useRouter();
+  const { session } = useAuth();
   const { id } = useLocalSearchParams<{ id?: string }>();
+  const [remoteListingTitle, setRemoteListingTitle] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const listing = getListingById(id);
+  const isRemoteListingId = Boolean(id && /^\d+$/.test(id));
 
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
@@ -41,8 +49,102 @@ export default function ObjectApplicationScreen() {
   const [message, setMessage] = useState('');
 
   const isSubmitDisabled = useMemo(() => {
-    return !name.trim() || !age.trim() || !phone.trim() || !email.trim() || !peopleCount.trim();
-  }, [age, email, name, peopleCount, phone]);
+    return (
+      !session?.token ||
+      submitting ||
+      !name.trim() ||
+      !age.trim() ||
+      !phone.trim() ||
+      !email.trim() ||
+      !peopleCount.trim()
+    );
+  }, [age, email, name, peopleCount, phone, session?.token, submitting]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isRemoteListingId || !id) {
+      setRemoteListingTitle(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    fetchListingById(id)
+      .then((item) => {
+        if (!cancelled) {
+          setRemoteListingTitle(mapApiListingToCatalogListing(item).title);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRemoteListingTitle(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isRemoteListingId]);
+
+  const submitApplication = async () => {
+    if (!id) {
+      return;
+    }
+
+    if (!session?.token) {
+      Alert.alert('Нужен вход', 'Войдите в аккаунт, чтобы отправить заявку.');
+      return;
+    }
+
+    if (!isRemoteListingId) {
+      Alert.alert(
+        'Заявка недоступна',
+        'Для тестовых локальных объектов отправка заявки не поддерживается. Выберите объявление из backend-каталога.'
+      );
+      return;
+    }
+
+    const parsedPeopleCount = Number(peopleCount.trim());
+    const stayTermMonths = leaseTerm === '3-6 месяцев' ? 6 : leaseTerm === '6-12 месяцев' ? 12 : leaseTerm === '1-2 года' ? 24 : 36;
+    const commentValue = message.trim();
+
+    try {
+      setSubmitting(true);
+
+      await createApplication(
+        id,
+        {
+          full_name: name.trim(),
+          phone: phone.trim(),
+          email: email.trim().toLowerCase(),
+          comment: commentValue || undefined,
+          occupant_count: Number.isFinite(parsedPeopleCount) && parsedPeopleCount > 0 ? parsedPeopleCount : undefined,
+          has_children: children,
+          has_pets: pets,
+          is_student: isStudent,
+          stay_term_months: stayTermMonths,
+          needs_mortgage: undefined,
+          purchase_term: undefined,
+        },
+        session.token
+      );
+
+      Alert.alert('Заявка отправлена', 'Мы передали вашу заявку по объекту.', [
+        {
+          text: 'ОК',
+          onPress: () => router.replace('/(tabs)/requests'),
+        },
+      ]);
+    } catch (error) {
+      Alert.alert(
+        'Не удалось отправить заявку',
+        error instanceof Error ? error.message : 'Попробуйте ещё раз.'
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -55,7 +157,7 @@ export default function ObjectApplicationScreen() {
 
       <View style={styles.objectBanner}>
         <Text style={styles.objectBannerLabel}>Объект недвижимости</Text>
-        <Text style={styles.objectBannerTitle}>{listing?.title ?? 'Объект недвижимости'}</Text>
+        <Text style={styles.objectBannerTitle}>{remoteListingTitle || listing?.title || 'Объект недвижимости'}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -167,8 +269,13 @@ export default function ObjectApplicationScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Pressable style={[styles.submitBtn, isSubmitDisabled && styles.submitBtnDisabled]} disabled={isSubmitDisabled}>
-          <Text style={[styles.submitText, isSubmitDisabled && styles.submitTextDisabled]}>Отправить заявку</Text>
+        <Pressable
+          style={[styles.submitBtn, isSubmitDisabled && styles.submitBtnDisabled]}
+          disabled={isSubmitDisabled}
+          onPress={submitApplication}>
+          <Text style={[styles.submitText, isSubmitDisabled && styles.submitTextDisabled]}>
+            {submitting ? 'Отправляем...' : 'Отправить заявку'}
+          </Text>
         </Pressable>
         <Text style={styles.footerNote}>
           Нажимая кнопку, вы соглашаетесь с политикой конфиденциальности

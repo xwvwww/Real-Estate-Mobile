@@ -163,6 +163,42 @@ export type CreateListingPayload = {
   longitude?: number;
 };
 
+export type CreateApplicationPayload = {
+  full_name: string;
+  phone: string;
+  email: string;
+  comment?: string;
+  occupant_count?: number;
+  has_children?: boolean;
+  has_pets?: boolean;
+  is_student?: boolean;
+  stay_term_months?: number;
+  needs_mortgage?: boolean;
+  purchase_term?: string;
+};
+
+export type ApiApplication = {
+  id: number;
+  listing_id: number;
+  user_id: number;
+  full_name: string;
+  phone: string;
+  email: string;
+  status: string;
+  is_compatible: boolean;
+  deal_type: string;
+  occupant_count?: number | null;
+  has_children?: boolean | null;
+  has_pets?: boolean | null;
+  is_student?: boolean | null;
+  stay_term_months?: number | null;
+  needs_mortgage?: boolean | null;
+  purchase_term?: string | null;
+  comment?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 const DEFAULT_API_URL = 'http://localhost:8080/v1';
 
 export const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL?.trim() || DEFAULT_API_URL).replace(
@@ -346,6 +382,51 @@ export async function removeFavorite(listingId: string | number, token: string) 
       Authorization: `Bearer ${token}`,
     },
   });
+}
+
+export async function createApplication(
+  listingId: string | number,
+  payload: CreateApplicationPayload,
+  token: string
+) {
+  return requestJson<ApiApplication>(`/listings/${encodeURIComponent(String(listingId))}/applications`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchApplications(
+  token: string,
+  filters: { status?: string; limit?: number; offset?: number } = {}
+) {
+  const params = new URLSearchParams();
+
+  if (filters.status) {
+    params.set('status', filters.status);
+  }
+  if (typeof filters.limit === 'number') {
+    params.set('limit', String(filters.limit));
+  }
+  if (typeof filters.offset === 'number') {
+    params.set('offset', String(filters.offset));
+  }
+
+  const query = params.toString();
+  const payload = await requestJson<ApiApplication[] | null>(
+    query ? `/applications?${query}` : '/applications',
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return Array.isArray(payload) ? payload : [];
 }
 
 export type ListingUploadFile = {

@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import LoginPageIcon from '@/assets/images/LoginPageIcon.svg';
+import { Image } from 'expo-image';
 import { useAuth } from '@/contexts/AuthContext';
 import { loginWithPassword } from '@/lib/api';
 import { getDashboardRoute } from '@/lib/auth';
@@ -61,7 +61,13 @@ export default function LoginScreen() {
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <View style={styles.logoWrap}>
             <View style={styles.logoBadge}>
-              <LoginPageIcon width={34} height={34} />
+              <View style={styles.logoClipWrap}>
+                <Image
+                  source={require('@/assets/images/qonys-logo.png')}
+                  style={styles.logoImage}
+                  contentFit="contain"
+                />
+              </View>
             </View>
             <Text style={styles.platformTitle}>Платформа недвижимости</Text>
           </View>
@@ -157,12 +163,34 @@ const styles = StyleSheet.create({
     marginBottom: 56,
   },
   logoBadge: {
-    width: 66,
-    height: 66,
-    borderRadius: 16,
-    backgroundColor: '#6F9BFF',
+    width: 112,
+    height: 112,
+    borderRadius: 30,
+    backgroundColor: '#F6F9FF',
+    borderWidth: 1,
+    borderColor: '#DCE8FF',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#6F9BFF',
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
+  },
+  logoClipWrap: {
+    width: 76,
+    height: 58,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  logoImage: {
+    width: 84,
+    height: 84,
+    transform: [
+      { translateX: 2 },
+      { translateY: -9 },
+    ],
   },
   platformTitle: {
     marginTop: 14,

@@ -254,6 +254,12 @@ export type ApiDashboardOverview = {
   recent_applications: ApiDashboardApplicationSummary[];
 };
 
+export type ListingUploadFile = {
+  uri: string;
+  name: string;
+  type?: string;
+};
+
 const DEFAULT_API_URL = 'http://localhost:8080/v1';
 
 export const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL?.trim() || DEFAULT_API_URL).replace(
@@ -573,17 +579,14 @@ export async function createApplicationMessage(
   body: string,
   token: string
 ) {
-  return requestJson<ApiApplicationMessage>(
-    `/applications/${encodeURIComponent(String(applicationId))}/messages`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ body }),
-    }
-  );
+  return requestJson<ApiApplicationMessage>(`/applications/${encodeURIComponent(String(applicationId))}/messages`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ body }),
+  });
 }
 
 export async function fetchDashboardOverview(token: string) {
@@ -594,12 +597,6 @@ export async function fetchDashboardOverview(token: string) {
     },
   });
 }
-
-export type ListingUploadFile = {
-  uri: string;
-  name: string;
-  type?: string;
-};
 
 export async function uploadListingMedia(
   listingId: string | number,
@@ -626,5 +623,11 @@ export async function uploadListingMedia(
     throw new Error(await readErrorMessage(response));
   }
 
-  return (await response.json()) as ApiListingMedia;
+  const payload = (await response.json()) as ApiListingMedia | ApiResponseEnvelope<ApiListingMedia>;
+
+  if (payload && typeof payload === 'object' && 'data' in payload) {
+    return (payload as ApiResponseEnvelope<ApiListingMedia>).data as ApiListingMedia;
+  }
+
+  return payload as ApiListingMedia;
 }

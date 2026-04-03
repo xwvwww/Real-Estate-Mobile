@@ -417,7 +417,7 @@ export default function UserCatalogScreen() {
           : null}
       </ScrollView>
 
-      <Modal visible={filterVisible} animationType="slide" transparent onRequestClose={() => setFilterVisible(false)}>
+      <Modal visible={filterVisible} animationType="fade" transparent onRequestClose={() => setFilterVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>

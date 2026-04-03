@@ -189,9 +189,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#F8F8F8',
     paddingHorizontal: 16,
+    paddingVertical: 0,
     fontSize: 16,
-    lineHeight: 24,
     color: '#3A3A3A',
+    textAlignVertical: 'center',
   },
   textArea: {
     marginTop: 4,

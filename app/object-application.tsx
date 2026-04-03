@@ -20,8 +20,38 @@ import { mapApiListingToCatalogListing } from '@/lib/listings';
 
 const LEASE_TERMS = ['3-6 месяцев', '6-12 месяцев', '1-2 года', 'Более 2 лет'];
 const GENDERS = ['М', 'Ж', 'Другое'] as const;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Gender = (typeof GENDERS)[number];
+
+function normalizeEmail(value: string) {
+  return value.replace(/\s+/g, '').toLowerCase();
+}
+
+function formatPhone(value: string) {
+  const rawDigits = value.replace(/\D/g, '');
+  const normalizedDigits = rawDigits.startsWith('8') ? `7${rawDigits.slice(1)}` : rawDigits;
+  const digits = normalizedDigits.startsWith('7')
+    ? normalizedDigits.slice(0, 11)
+    : `7${normalizedDigits}`.slice(0, 11);
+  const parts = [
+    digits.slice(1, 4),
+    digits.slice(4, 7),
+    digits.slice(7, 9),
+    digits.slice(9, 11),
+  ].filter(Boolean);
+
+  return digits.length === 0 ? '' : `+7 ${parts.join(' ')}`.trim();
+}
+
+function isValidEmail(value: string) {
+  return EMAIL_REGEX.test(normalizeEmail(value));
+}
+
+function isValidPhone(value: string) {
+  const digits = value.replace(/\D/g, '');
+  return digits.length === 11 && (digits.startsWith('8') || digits.startsWith('7'));
+}
 
 export default function ObjectApplicationScreen() {
   const router = useRouter();
@@ -36,6 +66,8 @@ export default function ObjectApplicationScreen() {
   const [age, setAge] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
   const [peopleCount, setPeopleCount] = useState('');
   const [children, setChildren] = useState(false);
   const [pets, setPets] = useState(false);
@@ -48,17 +80,20 @@ export default function ObjectApplicationScreen() {
   const [leaseOpen, setLeaseOpen] = useState(false);
   const [message, setMessage] = useState('');
 
+  const phoneValid = phone.trim().length > 0 && isValidPhone(phone);
+  const emailValid = email.trim().length > 0 && isValidEmail(email);
+
   const isSubmitDisabled = useMemo(() => {
     return (
       !session?.token ||
       submitting ||
       !name.trim() ||
       !age.trim() ||
-      !phone.trim() ||
-      !email.trim() ||
+      !phoneValid ||
+      !emailValid ||
       !peopleCount.trim()
     );
-  }, [age, email, name, peopleCount, phone, session?.token, submitting]);
+  }, [age, emailValid, name, peopleCount, phoneValid, session?.token, submitting]);
 
   useEffect(() => {
     let cancelled = false;
@@ -116,8 +151,8 @@ export default function ObjectApplicationScreen() {
         id,
         {
           full_name: name.trim(),
-          phone: phone.trim(),
-          email: email.trim().toLowerCase(),
+          phone: phone.replace(/\s+/g, ''),
+          email: normalizeEmail(email),
           comment: commentValue || undefined,
           occupant_count: Number.isFinite(parsedPeopleCount) && parsedPeopleCount > 0 ? parsedPeopleCount : undefined,
           has_children: children,
@@ -174,17 +209,25 @@ export default function ObjectApplicationScreen() {
           <Field
             label="Телефон *"
             value={phone}
-            onChangeText={setPhone}
-            placeholder="+7 (___) ___-__-__"
+            onChangeText={(value) => {
+              setPhoneTouched(true);
+              setPhone(formatPhone(value));
+            }}
+            placeholder="+7 777 123 12 12"
             keyboardType="phone-pad"
+            error={phoneTouched && !phoneValid ? 'Введите телефон в формате +7 777 123 12 12' : undefined}
           />
           <Field
             label="Email *"
             value={email}
-            onChangeText={setEmail}
-            placeholder="gmail.com"
+            onChangeText={(value) => {
+              setEmailTouched(true);
+              setEmail(normalizeEmail(value));
+            }}
+            placeholder="user@example.com"
             keyboardType="email-address"
             autoCapitalize="none"
+            error={emailTouched && !emailValid ? 'Введите корректный email' : undefined}
           />
         </View>
 
@@ -292,6 +335,7 @@ function Field({
   placeholder,
   keyboardType,
   autoCapitalize,
+  error,
 }: {
   label: string;
   value: string;
@@ -299,6 +343,7 @@ function Field({
   placeholder: string;
   keyboardType?: 'default' | 'email-address' | 'number-pad' | 'phone-pad';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  error?: string;
 }) {
   return (
     <View style={styles.field}>
@@ -312,6 +357,7 @@ function Field({
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
       />
+      {error ? <Text style={styles.fieldError}>{error}</Text> : null}
     </View>
   );
 }
@@ -353,6 +399,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, lineHeight: 24, color: '#3A3A3A', fontWeight: '600' },
   field: { gap: 4 },
   fieldLabel: { fontSize: 14, lineHeight: 21, color: '#737373', fontWeight: '500' },
+  fieldError: { fontSize: 12, lineHeight: 18, color: '#D14F4F' },
   input: {
     height: 48,
     borderRadius: 10,

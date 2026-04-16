@@ -1,32 +1,73 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AppDropdown from '@/components/AppDropdown';
 import AppCheckbox from '@/components/AppCheckbox';
 import { getListingById } from '@/constants/userListings';
+import { useAuth } from '@/contexts/AuthContext';
+import { createApplication, fetchListingById } from '@/lib/api';
+import { mapApiListingToCatalogListing } from '@/lib/listings';
 
 const LEASE_TERMS = ['3-6 месяцев', '6-12 месяцев', '1-2 года', 'Более 2 лет'];
 const GENDERS = ['М', 'Ж', 'Другое'] as const;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Gender = (typeof GENDERS)[number];
 
+function normalizeEmail(value: string) {
+  return value.replace(/\s+/g, '').toLowerCase();
+}
+
+function formatPhone(value: string) {
+  const rawDigits = value.replace(/\D/g, '');
+  const normalizedDigits = rawDigits.startsWith('8') ? `7${rawDigits.slice(1)}` : rawDigits;
+  const digits = normalizedDigits.startsWith('7')
+    ? normalizedDigits.slice(0, 11)
+    : `7${normalizedDigits}`.slice(0, 11);
+  const parts = [
+    digits.slice(1, 4),
+    digits.slice(4, 7),
+    digits.slice(7, 9),
+    digits.slice(9, 11),
+  ].filter(Boolean);
+
+  return digits.length === 0 ? '' : `+7 ${parts.join(' ')}`.trim();
+}
+
+function isValidEmail(value: string) {
+  return EMAIL_REGEX.test(normalizeEmail(value));
+}
+
+function isValidPhone(value: string) {
+  const digits = value.replace(/\D/g, '');
+  return digits.length === 11 && (digits.startsWith('8') || digits.startsWith('7'));
+}
+
 export default function ObjectApplicationScreen() {
   const router = useRouter();
+  const { session } = useAuth();
   const { id } = useLocalSearchParams<{ id?: string }>();
+  const [remoteListingTitle, setRemoteListingTitle] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const listing = getListingById(id);
+  const isRemoteListingId = Boolean(id && /^\d+$/.test(id));
 
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
   const [peopleCount, setPeopleCount] = useState('');
   const [children, setChildren] = useState(false);
   const [pets, setPets] = useState(false);
@@ -39,9 +80,106 @@ export default function ObjectApplicationScreen() {
   const [leaseOpen, setLeaseOpen] = useState(false);
   const [message, setMessage] = useState('');
 
+  const phoneValid = phone.trim().length > 0 && isValidPhone(phone);
+  const emailValid = email.trim().length > 0 && isValidEmail(email);
+
   const isSubmitDisabled = useMemo(() => {
-    return !name.trim() || !age.trim() || !phone.trim() || !email.trim() || !peopleCount.trim();
-  }, [age, email, name, peopleCount, phone]);
+    return (
+      !session?.token ||
+      submitting ||
+      !name.trim() ||
+      !age.trim() ||
+      !phoneValid ||
+      !emailValid ||
+      !peopleCount.trim()
+    );
+  }, [age, emailValid, name, peopleCount, phoneValid, session?.token, submitting]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isRemoteListingId || !id) {
+      setRemoteListingTitle(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    fetchListingById(id)
+      .then((item) => {
+        if (!cancelled) {
+          setRemoteListingTitle(mapApiListingToCatalogListing(item).title);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRemoteListingTitle(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isRemoteListingId]);
+
+  const submitApplication = async () => {
+    if (!id) {
+      return;
+    }
+
+    if (!session?.token) {
+      Alert.alert('Нужен вход', 'Войдите в аккаунт, чтобы отправить заявку.');
+      return;
+    }
+
+    if (!isRemoteListingId) {
+      Alert.alert(
+        'Заявка недоступна',
+        'Для тестовых локальных объектов отправка заявки не поддерживается. Выберите объявление из backend-каталога.'
+      );
+      return;
+    }
+
+    const parsedPeopleCount = Number(peopleCount.trim());
+    const stayTermMonths = leaseTerm === '3-6 месяцев' ? 6 : leaseTerm === '6-12 месяцев' ? 12 : leaseTerm === '1-2 года' ? 24 : 36;
+    const commentValue = message.trim();
+
+    try {
+      setSubmitting(true);
+
+      await createApplication(
+        id,
+        {
+          full_name: name.trim(),
+          phone: phone.replace(/\s+/g, ''),
+          email: normalizeEmail(email),
+          comment: commentValue || undefined,
+          occupant_count: Number.isFinite(parsedPeopleCount) && parsedPeopleCount > 0 ? parsedPeopleCount : undefined,
+          has_children: children,
+          has_pets: pets,
+          is_student: isStudent,
+          stay_term_months: stayTermMonths,
+          needs_mortgage: undefined,
+          purchase_term: undefined,
+        },
+        session.token
+      );
+
+      Alert.alert('Заявка отправлена', 'Мы передали вашу заявку по объекту.', [
+        {
+          text: 'ОК',
+          onPress: () => router.replace('/(tabs)/requests'),
+        },
+      ]);
+    } catch (error) {
+      Alert.alert(
+        'Не удалось отправить заявку',
+        error instanceof Error ? error.message : 'Попробуйте ещё раз.'
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -54,7 +192,7 @@ export default function ObjectApplicationScreen() {
 
       <View style={styles.objectBanner}>
         <Text style={styles.objectBannerLabel}>Объект недвижимости</Text>
-        <Text style={styles.objectBannerTitle}>{listing?.title ?? 'Объект недвижимости'}</Text>
+        <Text style={styles.objectBannerTitle}>{remoteListingTitle || listing?.title || 'Объект недвижимости'}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -71,17 +209,25 @@ export default function ObjectApplicationScreen() {
           <Field
             label="Телефон *"
             value={phone}
-            onChangeText={setPhone}
-            placeholder="+7 (___) ___-__-__"
+            onChangeText={(value) => {
+              setPhoneTouched(true);
+              setPhone(formatPhone(value));
+            }}
+            placeholder="+7 777 123 12 12"
             keyboardType="phone-pad"
+            error={phoneTouched && !phoneValid ? 'Введите телефон в формате +7 777 123 12 12' : undefined}
           />
           <Field
             label="Email *"
             value={email}
-            onChangeText={setEmail}
-            placeholder="gmail.com"
+            onChangeText={(value) => {
+              setEmailTouched(true);
+              setEmail(normalizeEmail(value));
+            }}
+            placeholder="user@example.com"
             keyboardType="email-address"
             autoCapitalize="none"
+            error={emailTouched && !emailValid ? 'Введите корректный email' : undefined}
           />
         </View>
 
@@ -136,27 +282,18 @@ export default function ObjectApplicationScreen() {
           />
 
           <Text style={styles.fieldLabel}>На какой срок планируется аренда? *</Text>
-          <View style={styles.dropdownWrap}>
-            <Pressable style={styles.selectInput} onPress={() => setLeaseOpen((v) => !v)}>
-              <Text style={styles.inputValue}>{leaseTerm}</Text>
-              <Ionicons name={leaseOpen ? 'chevron-up' : 'chevron-down'} size={18} color="#737373" />
-            </Pressable>
-            {leaseOpen ? (
-              <View style={styles.dropdownMenu}>
-                {LEASE_TERMS.map((item) => (
-                  <Pressable
-                    key={item}
-                    style={styles.dropdownItem}
-                    onPress={() => {
-                      setLeaseTerm(item);
-                      setLeaseOpen(false);
-                    }}>
-                    <Text style={styles.dropdownItemText}>{item}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
-          </View>
+          <AppDropdown
+            value={leaseTerm}
+            placeholder="Выберите срок"
+            open={leaseOpen}
+            options={LEASE_TERMS.map((item) => ({ label: item, value: item }))}
+            onToggle={() => setLeaseOpen((v) => !v)}
+            onSelect={(value) => {
+              setLeaseTerm(value);
+              setLeaseOpen(false);
+            }}
+            triggerStyle={styles.selectInput}
+          />
         </View>
 
         <View style={styles.section}>
@@ -175,8 +312,13 @@ export default function ObjectApplicationScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Pressable style={[styles.submitBtn, isSubmitDisabled && styles.submitBtnDisabled]} disabled={isSubmitDisabled}>
-          <Text style={[styles.submitText, isSubmitDisabled && styles.submitTextDisabled]}>Отправить заявку</Text>
+        <Pressable
+          style={[styles.submitBtn, isSubmitDisabled && styles.submitBtnDisabled]}
+          disabled={isSubmitDisabled}
+          onPress={submitApplication}>
+          <Text style={[styles.submitText, isSubmitDisabled && styles.submitTextDisabled]}>
+            {submitting ? 'Отправляем...' : 'Отправить заявку'}
+          </Text>
         </Pressable>
         <Text style={styles.footerNote}>
           Нажимая кнопку, вы соглашаетесь с политикой конфиденциальности
@@ -193,6 +335,7 @@ function Field({
   placeholder,
   keyboardType,
   autoCapitalize,
+  error,
 }: {
   label: string;
   value: string;
@@ -200,6 +343,7 @@ function Field({
   placeholder: string;
   keyboardType?: 'default' | 'email-address' | 'number-pad' | 'phone-pad';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  error?: string;
 }) {
   return (
     <View style={styles.field}>
@@ -213,6 +357,7 @@ function Field({
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
       />
+      {error ? <Text style={styles.fieldError}>{error}</Text> : null}
     </View>
   );
 }
@@ -254,6 +399,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, lineHeight: 24, color: '#3A3A3A', fontWeight: '600' },
   field: { gap: 4 },
   fieldLabel: { fontSize: 14, lineHeight: 21, color: '#737373', fontWeight: '500' },
+  fieldError: { fontSize: 12, lineHeight: 18, color: '#D14F4F' },
   input: {
     height: 48,
     borderRadius: 10,
@@ -262,15 +408,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#3A3A3A',
   },
-  inputValue: { flex: 1, fontSize: 16, color: '#3A3A3A' },
   selectInput: {
-    height: 48,
-    borderRadius: 10,
-    backgroundColor: '#F8F8F8',
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    borderWidth: 0,
   },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   checkLabel: { fontSize: 15, lineHeight: 22, color: '#3A3A3A', fontWeight: '500' },
@@ -286,17 +425,6 @@ const styles = StyleSheet.create({
   genderBtnActive: { backgroundColor: '#70A0FF' },
   genderBtnText: { fontSize: 14, lineHeight: 21, color: '#3A3A3A', fontWeight: '500' },
   genderBtnTextActive: { color: '#FFFFFF' },
-  dropdownWrap: { position: 'relative' },
-  dropdownMenu: {
-    marginTop: 6,
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-    overflow: 'hidden',
-  },
-  dropdownItem: { height: 44, justifyContent: 'center', paddingHorizontal: 14 },
-  dropdownItemText: { fontSize: 14, lineHeight: 21, color: '#3A3A3A' },
   textArea: {
     height: 136,
     borderRadius: 10,

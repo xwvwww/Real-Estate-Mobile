@@ -1,28 +1,161 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { getListingById } from '@/constants/userListings';
-import { getUserChatById } from '@/constants/userMessages';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { EmptyState } from '@/components/EmptyState';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  createApplicationMessage,
+  fetchApplicationMessages,
+  fetchApplications,
+  fetchListingById,
+} from '@/lib/api';
+import { mapApiChatToListItem, mapApiMessageToChatMessage } from '@/lib/messages';
 
 export default function MessageDetailsScreen() {
   const router = useRouter();
+  const { session } = useAuth();
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const chat = getUserChatById(id);
-  const listing = getListingById(chat?.listingId);
   const [draft, setDraft] = useState('');
+  const [chat, setChat] = useState<ReturnType<typeof mapApiChatToListItem> | null>(null);
+  const [listingId, setListingId] = useState<string | null>(null);
+  const [listingTitle, setListingTitle] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ReturnType<typeof mapApiMessageToChatMessage>[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
 
-  const conversation = useMemo(() => chat?.messages ?? [], [chat?.messages]);
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!id || !session?.token) {
+      setChat(null);
+      setMessages([]);
+      setLoading(false);
+      setLoadError('Войдите в аккаунт и выберите диалог');
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setLoading(true);
+    setLoadError(null);
+
+    const loadChat = async () => {
+      const [applications, applicationMessages] = await Promise.all([
+        fetchApplications(session.token),
+        fetchApplicationMessages(id, session.token),
+      ]);
+
+      const application = applications.find((item) => String(item.id) === id);
+      if (!application) {
+        throw new Error('Вернитесь к сообщениям и откройте существующий чат');
+      }
+
+      const listing = await fetchListingById(application.listing_id).catch(() => null);
+
+      if (cancelled) {
+        return;
+      }
+
+      setListingId(String(application.listing_id));
+      setListingTitle(listing?.title || null);
+      setChat(
+        mapApiChatToListItem({
+          application_id: application.id,
+          listing_title: listing?.title || `Объект #${application.listing_id}`,
+          company_name: listing?.company_name || 'Компания',
+          last_message:
+            applicationMessages[applicationMessages.length - 1]?.body || 'Диалог по заявке',
+          last_message_at:
+            applicationMessages[applicationMessages.length - 1]?.created_at || application.updated_at,
+          is_unread: false,
+        })
+      );
+      setMessages(applicationMessages.map((item) => mapApiMessageToChatMessage(item, session)));
+    };
+
+    loadChat()
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setChat(null);
+          setMessages([]);
+          setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить диалог');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, session]);
+
+  const listing = useMemo(() => {
+    if (!listingId || !listingTitle) {
+      return null;
+    }
+
+    return {
+      id: listingId,
+      title: listingTitle,
+    };
+  }, [listingId, listingTitle]);
+
+  const conversation = useMemo(() => messages, [messages]);
+
+  const sendMessage = async () => {
+    if (!id || !session?.token || !draft.trim() || sending) {
+      return;
+    }
+
+    try {
+      setSending(true);
+      const createdMessage = await createApplicationMessage(id, draft.trim(), session.token);
+      setMessages((current) => [...current, mapApiMessageToChatMessage(createdMessage, session)]);
+      setDraft('');
+    } catch (error) {
+      Alert.alert(
+        'Не удалось отправить сообщение',
+        error instanceof Error ? error.message : 'Попробуйте ещё раз.'
+      );
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.header}>
+          <Pressable style={styles.headerBtn} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={20} color="#3A3A3A" />
+          </Pressable>
+          <Text style={styles.headerTitle}>Сообщения</Text>
+          <View style={styles.headerBtn} />
+        </View>
+        <View style={styles.emptyWrap}>
+          <ActivityIndicator color="#70A0FF" />
+          <Text style={styles.loadingText}>Загружаем диалог...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!chat) {
     return (
@@ -35,7 +168,13 @@ export default function MessageDetailsScreen() {
           <View style={styles.headerBtn} />
         </View>
         <View style={styles.emptyWrap}>
-          <Text style={styles.emptyTitle}>Диалог не найден</Text>
+          <EmptyState
+            icon="chatbubbles-outline"
+            title="Диалог не найден"
+            description={loadError || 'Вернитесь к сообщениям и откройте существующий чат'}
+            actionLabel="К списку сообщений"
+            onAction={() => router.replace('/(tabs)/messages')}
+          />
         </View>
       </SafeAreaView>
     );
@@ -60,7 +199,7 @@ export default function MessageDetailsScreen() {
           <Pressable
             style={styles.headerBtn}
             onPress={() => {
-              if (listing) {
+              if (listing?.id) {
                 router.push({ pathname: '/object/[id]', params: { id: listing.id } });
               }
             }}>
@@ -69,7 +208,7 @@ export default function MessageDetailsScreen() {
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {listing ? (
+          {listing?.id ? (
             <Pressable
               style={styles.objectBanner}
               onPress={() => router.push({ pathname: '/object/[id]', params: { id: listing.id } })}>
@@ -103,7 +242,10 @@ export default function MessageDetailsScreen() {
               placeholder="Напишите сообщение..."
               placeholderTextColor="#939393"
             />
-            <Pressable style={[styles.sendBtn, !draft.trim() && styles.sendBtnDisabled]} disabled={!draft.trim()}>
+            <Pressable
+              style={[styles.sendBtn, (!draft.trim() || sending) && styles.sendBtnDisabled]}
+              disabled={!draft.trim() || sending}
+              onPress={sendMessage}>
               <Ionicons name="send" size={16} color="#FFFFFF" />
             </Pressable>
           </View>
@@ -191,6 +333,6 @@ const styles = StyleSheet.create({
   sendBtnDisabled: {
     opacity: 0.45,
   },
-  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  emptyTitle: { fontSize: 18, lineHeight: 27, color: '#3A3A3A', fontWeight: '600' },
+  emptyWrap: { flex: 1, justifyContent: 'center', padding: 16, alignItems: 'center', gap: 10 },
+  loadingText: { fontSize: 13, lineHeight: 20, color: '#737373' },
 });

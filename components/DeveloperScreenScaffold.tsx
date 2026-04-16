@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/contexts/AuthContext';
 import { DeveloperBottomBar, DeveloperTabKey } from '@/components/DeveloperBottomBar';
 
 type Props = {
@@ -11,6 +12,7 @@ type Props = {
 
 export function DeveloperScreenScaffold({ title, subtitle, activeTab }: Props) {
   const router = useRouter();
+  const { signOut } = useAuth();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -22,7 +24,12 @@ export function DeveloperScreenScaffold({ title, subtitle, activeTab }: Props) {
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
 
-        <Pressable style={styles.logoutButton} onPress={() => router.replace('/login')}>
+        <Pressable
+          style={styles.logoutButton}
+          onPress={async () => {
+            await signOut();
+            router.replace('/login');
+          }}>
           <Text style={styles.logoutText}>Выйти</Text>
         </Pressable>
       </View>

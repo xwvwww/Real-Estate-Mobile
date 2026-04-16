@@ -1,27 +1,112 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, SafeAreaView, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { EmptyState } from '@/components/EmptyState';
 import UserMapCard from '@/components/UserMapCard';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchListingById } from '@/lib/api';
+import {
+  mapApiListingToCatalogListing,
+  mapUserListingToCatalogListing,
+  type CatalogListing,
+} from '@/lib/listings';
 import { getListingById } from '@/constants/userListings';
 import { toggleFavorite, useIsFavorite } from '@/stores/favoritesStore';
 
 export default function ObjectDetailsScreen() {
   const router = useRouter();
+  const { session } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const listing = getListingById(id);
-  const isFavorite = useIsFavorite(listing?.id ?? '');
+  const localListing = useMemo(() => {
+    const item = getListingById(id);
+    return item ? mapUserListingToCatalogListing(item) : null;
+  }, [id]);
+  const isRemoteListingId = Boolean(id && /^\d+$/.test(id));
+  const [remoteListing, setRemoteListing] = useState<CatalogListing | null>(null);
+  const [loading, setLoading] = useState(isRemoteListingId);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeSlide] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isRemoteListingId || !id) {
+      setRemoteListing(null);
+      setLoadError(null);
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setLoading(true);
+    setLoadError(null);
+
+    fetchListingById(id)
+      .then((item) => {
+        if (cancelled) {
+          return;
+        }
+        setRemoteListing(mapApiListingToCatalogListing(item));
+      })
+      .catch((error: unknown) => {
+        if (cancelled) {
+          return;
+        }
+        setRemoteListing(null);
+        setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить объект');
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isRemoteListingId]);
+
+  const listing = remoteListing ?? localListing;
+  const isFavorite = useIsFavorite(listing?.id ?? '', session);
+
+  const listingImages = useMemo(() => {
+    if (!listing) {
+      return [];
+    }
+
+    return listing.images.length > 0 ? listing.images : [listing.image];
+  }, [listing]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.emptyWrap}>
+          <EmptyState
+            icon="home-outline"
+            title="Загружаем объект"
+            description="Подождите, мы получаем данные из каталога"
+            elevated={false}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!listing) {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.emptyWrap}>
-          <Text style={styles.emptyTitle}>Объект не найден</Text>
-          <Pressable style={styles.emptyButton} onPress={() => router.back()}>
-            <Text style={styles.emptyButtonText}>Назад</Text>
-          </Pressable>
+          <EmptyState
+            icon="home-outline"
+            title="Объект не найден"
+            description={loadError || 'Вернитесь назад и выберите объявление из списка'}
+            actionLabel="Вернуться назад"
+            onAction={() => router.back()}
+          />
         </View>
       </SafeAreaView>
     );
@@ -37,10 +122,25 @@ export default function ObjectDetailsScreen() {
     }
   };
 
+  const onToggleFavorite = async () => {
+    if (!listing) {
+      return;
+    }
+
+    try {
+      await toggleFavorite(listing.id, session);
+    } catch (error) {
+      Alert.alert(
+        'Не удалось обновить избранное',
+        error instanceof Error ? error.message : 'Попробуйте ещё раз.'
+      );
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.heroWrap}>
-        <Image source={listing.image} style={styles.heroImage} contentFit="cover" />
+        <Image source={listingImages[activeSlide] ?? listing.image} style={styles.heroImage} contentFit="cover" />
 
         <Pressable style={styles.topLeftBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={20} color="#3A3A3A" />
@@ -50,16 +150,16 @@ export default function ObjectDetailsScreen() {
           <Pressable style={styles.roundBtn} onPress={onShare}>
             <Ionicons name="share-social-outline" size={20} color="#3A3A3A" />
           </Pressable>
-          <Pressable style={styles.roundBtn} onPress={() => toggleFavorite(listing.id)}>
+          <Pressable style={styles.roundBtn} onPress={onToggleFavorite}>
             <Ionicons name={isFavorite ? 'heart' : 'heart-outline'} size={20} color={isFavorite ? '#F25C7B' : '#3A3A3A'} />
           </Pressable>
         </View>
 
         <View style={styles.badgeType}>
-          <Text style={styles.badgeTypeText}>{listing.type}</Text>
+          <Text style={styles.badgeTypeText}>{listing.propertyType}</Text>
         </View>
         <View style={styles.badgeCounter}>
-          <Text style={styles.badgeCounterText}>{activeSlide + 1} / 1</Text>
+          <Text style={styles.badgeCounterText}>{activeSlide + 1} / {Math.max(listingImages.length, 1)}</Text>
         </View>
       </View>
 
@@ -78,17 +178,17 @@ export default function ObjectDetailsScreen() {
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
             <Ionicons name="bed-outline" size={20} color="#70A0FF" />
-            <Text style={styles.statValue}>{listing.beds}</Text>
+            <Text style={styles.statValue}>{listing.roomsLabel}</Text>
             <Text style={styles.statLabel}>комнат</Text>
           </View>
           <View style={styles.statCard}>
             <Ionicons name="resize-outline" size={20} color="#70A0FF" />
-            <Text style={styles.statValue}>{listing.area.replace(' м²', '')}</Text>
+            <Text style={styles.statValue}>{listing.areaLabel.replace(' м²', '')}</Text>
             <Text style={styles.statLabel}>м²</Text>
           </View>
           <View style={styles.statCard}>
             <Ionicons name="business-outline" size={20} color="#70A0FF" />
-            <Text style={styles.statValue}>{listing.floor.replace(' этаж', '')}</Text>
+            <Text style={styles.statValue}>{listing.floorLabel.replace(' этаж', '')}</Text>
             <Text style={styles.statLabel}>этаж</Text>
           </View>
         </View>
@@ -111,15 +211,15 @@ export default function ObjectDetailsScreen() {
           markers={[
             {
               id: `m-${listing.id}`,
-              lat: listing.latitude,
-              lng: listing.longitude,
+              lat: listing.latitude ?? 0,
+              lng: listing.longitude ?? 0,
               price: listing.price,
               listingId: listing.id,
             },
           ]}
           initialRegion={{
-            latitude: listing.latitude,
-            longitude: listing.longitude,
+            latitude: listing.latitude ?? 48.0196,
+            longitude: listing.longitude ?? 66.9237,
             latitudeDelta: 0.05,
             longitudeDelta: 0.05,
           }}
@@ -135,8 +235,8 @@ export default function ObjectDetailsScreen() {
               <Text style={styles.agencyAvatarText}>AH</Text>
             </View>
             <View>
-              <Text style={styles.agencyName}>Агентство недвижимости</Text>
-              <Text style={styles.agencyStatus}>Проверено</Text>
+              <Text style={styles.agencyName}>{listing.companyName || 'Агентство недвижимости'}</Text>
+              <Text style={styles.agencyStatus}>{listing.status === 'active' ? 'Опубликовано' : 'Проверено'}</Text>
             </View>
           </View>
           <Text style={styles.agencyText}>Профессиональная помощь в подборе и оформлении недвижимости</Text>
@@ -164,17 +264,7 @@ export default function ObjectDetailsScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
-  emptyWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  emptyTitle: { fontSize: 18, lineHeight: 27, fontWeight: '600', color: '#3A3A3A' },
-  emptyButton: {
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: '#70A0FF',
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyButtonText: { color: '#FFFFFF', fontSize: 15, lineHeight: 22, fontWeight: '500' },
+  emptyWrap: { flex: 1, justifyContent: 'center', padding: 16 },
   heroWrap: { height: 280, position: 'relative', backgroundColor: '#111' },
   heroImage: { ...StyleSheet.absoluteFillObject },
   topLeftBtn: {

@@ -1,16 +1,87 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { EmptyState } from '@/components/EmptyState';
+import { CARD_RADIUS, ELEVATED_CARD_SHADOW } from '@/constants/ui';
 import { USER_LISTINGS } from '@/constants/userListings';
+import { fetchFavorites, fetchListings } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  mapApiFavoriteToCatalogListing,
+  mapApiListingToCatalogListing,
+  mapUserListingToCatalogListing,
+  type CatalogListing,
+} from '@/lib/listings';
 import { useFavoriteIds } from '@/stores/favoritesStore';
+
+const LOCAL_FAVORITE_CATALOG = USER_LISTINGS.map((item, index) => mapUserListingToCatalogListing(item, index));
 
 export default function FavoritesScreen() {
   const router = useRouter();
-  const favoriteIds = useFavoriteIds();
-  const favoriteItems = USER_LISTINGS.filter((item) => favoriteIds.includes(item.id));
+  const { session } = useAuth();
+  const favoriteIds = useFavoriteIds(session);
+  const [catalogItems, setCatalogItems] = useState<CatalogListing[]>(LOCAL_FAVORITE_CATALOG);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadFavorites = async () => {
+      const [favoriteItems, buyItems, rentItems] = await Promise.all([
+        session?.token ? fetchFavorites(session.token) : Promise.resolve([]),
+        fetchListings({ dealType: 'buy' }),
+        fetchListings({ dealType: 'rent' }),
+      ]);
+
+      if (cancelled) {
+        return;
+      }
+
+      const mergedById = new Map<string, CatalogListing>();
+
+      LOCAL_FAVORITE_CATALOG.forEach((item) => {
+        mergedById.set(item.id, item);
+      });
+
+      favoriteItems.forEach((item, index) => {
+        const mapped = mapApiFavoriteToCatalogListing(item, index);
+        mergedById.set(mapped.id, mapped);
+      });
+
+      [...buyItems, ...rentItems].forEach((item, index) => {
+        const mapped = mapApiListingToCatalogListing(item, index);
+        mergedById.set(mapped.id, mapped);
+      });
+
+      setCatalogItems(Array.from(mergedById.values()));
+    };
+
+    loadFavorites()
+      .then(() => {
+        if (cancelled) {
+          return;
+        }
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+        setCatalogItems(LOCAL_FAVORITE_CATALOG);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.token]);
+
+  const favoriteItems = useMemo(
+    () => catalogItems.filter((item) => favoriteIds.includes(item.id)),
+    [catalogItems, favoriteIds]
+  );
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Избранное</Text>
       </View>
@@ -23,10 +94,11 @@ export default function FavoritesScreen() {
         alwaysBounceVertical={false}
         overScrollMode="never">
         {favoriteItems.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Text style={styles.emptyTitle}>Пока нет избранных объектов</Text>
-            <Text style={styles.emptyText}>Добавьте объекты в избранное из каталога или карточки объекта</Text>
-          </View>
+          <EmptyState
+            icon="heart-outline"
+            title="Пока нет избранных объектов"
+            description="Добавьте объекты в избранное из каталога или карточки объекта"
+          />
         ) : null}
 
         {favoriteItems.map((item) => (
@@ -67,40 +139,20 @@ const styles = StyleSheet.create({
     color: '#3A3A3A',
   },
   scroll: {
+    flex: 1,
     backgroundColor: '#F8F8F8',
   },
   content: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 24,
+    paddingBottom: 12,
     gap: 12,
   },
-  emptyBox: {
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    gap: 4,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600',
-    color: '#3A3A3A',
-  },
-  emptyText: {
-    fontSize: 13,
-    lineHeight: 20,
-    color: '#939393',
-  },
   card: {
-    borderRadius: 14,
+    borderRadius: CARD_RADIUS,
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
-    shadowColor: '#000000',
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 2,
+    ...ELEVATED_CARD_SHADOW,
   },
   image: {
     width: '100%',

@@ -29,7 +29,6 @@ export function AppTabBar({ state, descriptors, navigation }: BottomTabBarProps)
 
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom - 18, 0) }]}>
-      <View style={styles.topBorder} />
       <View style={styles.contentRow}>
         {visibleRoutes.map((route) => {
           const config = ROUTE_CONFIG[route.name];
@@ -74,11 +73,6 @@ export function AppTabBar({ state, descriptors, navigation }: BottomTabBarProps)
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFFFFF',
-  },
-  topBorder: {
-    height: 1,
-    backgroundColor: '#E8E8E8',
-    width: '100%',
   },
   contentRow: {
     minHeight: 62,

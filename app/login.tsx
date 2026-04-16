@@ -4,47 +4,52 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import LoginPageIcon from '@/assets/images/LoginPageIcon.svg';
+import { Image } from 'expo-image';
+import { useAuth } from '@/contexts/AuthContext';
+import { loginWithPassword } from '@/lib/api';
+import { getDashboardRoute } from '@/lib/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const canLogin = email.trim().length > 0 && password.trim().length > 0;
 
-  const onLogin = () => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const normalizedPassword = password.trim();
-
-    if (normalizedEmail === 'testuser@gmail.com' && normalizedPassword === '123456') {
-      router.replace('/(tabs)');
+  const onLogin = async () => {
+    if (!canLogin || isSubmitting) {
       return;
     }
 
-    if (normalizedEmail === 'testagency@gmail.com' && normalizedPassword === '123456') {
-      router.replace('/agency-dashboard');
-      return;
-    }
+    try {
+      setIsSubmitting(true);
 
-    if (normalizedEmail === 'testdeveloper@gmail.com' && normalizedPassword === '123456') {
-      router.replace('/developer-dashboard');
-      return;
-    }
+      const session = await loginWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-    Alert.alert(
-      'Неверные данные',
-      'Тестовые аккаунты: testuser@gmail.com / 123456, testagency@gmail.com / 123456, testdeveloper@gmail.com / 123456'
-    );
+      await signIn(session);
+      router.replace(getDashboardRoute(session.user.role.name));
+    } catch (error) {
+      Alert.alert(
+        'Не удалось войти',
+        error instanceof Error ? error.message : 'Проверьте email и пароль и попробуйте снова.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -56,7 +61,13 @@ export default function LoginScreen() {
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <View style={styles.logoWrap}>
             <View style={styles.logoBadge}>
-              <LoginPageIcon width={34} height={34} />
+              <View style={styles.logoClipWrap}>
+                <Image
+                  source={require('@/assets/images/qonys-logo.png')}
+                  style={styles.logoImage}
+                  contentFit="contain"
+                />
+              </View>
             </View>
             <Text style={styles.platformTitle}>Платформа недвижимости</Text>
           </View>
@@ -100,12 +111,19 @@ export default function LoginScreen() {
           </Link>
 
           <Pressable
-            style={[styles.primaryButton, !canLogin && styles.primaryButtonDisabled]}
-            disabled={!canLogin}
+            style={[
+              styles.primaryButton,
+              (!canLogin || isSubmitting) && styles.primaryButtonDisabled,
+            ]}
+            disabled={!canLogin || isSubmitting}
             onPress={onLogin}
           >
-            <Text style={[styles.primaryButtonText, !canLogin && styles.primaryButtonTextDisabled]}>
-              Войти
+            <Text
+              style={[
+                styles.primaryButtonText,
+                (!canLogin || isSubmitting) && styles.primaryButtonTextDisabled,
+              ]}>
+              {isSubmitting ? 'Входим...' : 'Войти'}
             </Text>
           </Pressable>
 
@@ -145,12 +163,34 @@ const styles = StyleSheet.create({
     marginBottom: 56,
   },
   logoBadge: {
-    width: 66,
-    height: 66,
-    borderRadius: 16,
-    backgroundColor: '#6F9BFF',
+    width: 112,
+    height: 112,
+    borderRadius: 30,
+    backgroundColor: '#F6F9FF',
+    borderWidth: 1,
+    borderColor: '#DCE8FF',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#6F9BFF',
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
+  },
+  logoClipWrap: {
+    width: 76,
+    height: 58,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  logoImage: {
+    width: 84,
+    height: 84,
+    transform: [
+      { translateX: 2 },
+      { translateY: -9 },
+    ],
   },
   platformTitle: {
     marginTop: 14,

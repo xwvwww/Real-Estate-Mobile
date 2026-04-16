@@ -3,17 +3,15 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { updateListingDraft, useListingDraft } from '@/stores/listingDraftStore';
 
 const PROPERTY_TYPES = ['Квартира', 'Дом', 'Коммерческая', 'Студия'] as const;
 const DEAL_TYPES = ['Продажа', 'Аренда'] as const;
 
 export default function AgencyCreateListingScreen() {
   const router = useRouter();
+  const draft = useListingDraft();
 
-  const [title, setTitle] = useState('');
-  const [propertyType, setPropertyType] = useState('');
-  const [dealType, setDealType] = useState('');
-  const [price, setPrice] = useState('');
   const [propertyTypeModalOpen, setPropertyTypeModalOpen] = useState(false);
   const [dealTypeModalOpen, setDealTypeModalOpen] = useState(false);
 
@@ -55,8 +53,8 @@ export default function AgencyCreateListingScreen() {
             <Text style={styles.fieldLabel}>Название объекта*</Text>
             <TextInput
               style={styles.input}
-              value={title}
-              onChangeText={setTitle}
+              value={draft.title}
+              onChangeText={(value) => updateListingDraft({ title: value })}
               placeholder="Например: 2-комнатная квартира в центре"
               placeholderTextColor="#939393"
             />
@@ -65,8 +63,8 @@ export default function AgencyCreateListingScreen() {
           <View style={styles.fieldWrap}>
             <Text style={styles.fieldLabel}>Тип недвижимости*</Text>
             <Pressable style={styles.select} onPress={() => setPropertyTypeModalOpen(true)}>
-              <Text style={[styles.selectText, !propertyType && styles.selectPlaceholder]}>
-                {propertyType || 'Выберите тип недвижимости'}
+              <Text style={[styles.selectText, !draft.propertyType && styles.selectPlaceholder]}>
+                {draft.propertyType || 'Выберите тип недвижимости'}
               </Text>
               <Ionicons name="chevron-down" size={18} color="#939393" />
             </Pressable>
@@ -75,8 +73,8 @@ export default function AgencyCreateListingScreen() {
           <View style={styles.fieldWrap}>
             <Text style={styles.fieldLabel}>Тип сделки*</Text>
             <Pressable style={styles.select} onPress={() => setDealTypeModalOpen(true)}>
-              <Text style={[styles.selectText, !dealType && styles.selectPlaceholder]}>
-                {dealType || 'Выберите тип сделки'}
+              <Text style={[styles.selectText, !draft.dealType && styles.selectPlaceholder]}>
+                {draft.dealType || 'Выберите тип сделки'}
               </Text>
               <Ionicons name="chevron-down" size={18} color="#939393" />
             </Pressable>
@@ -86,8 +84,8 @@ export default function AgencyCreateListingScreen() {
             <Text style={styles.fieldLabel}>Цена*</Text>
             <TextInput
               style={styles.input}
-              value={price}
-              onChangeText={setPrice}
+              value={draft.price}
+              onChangeText={(value) => updateListingDraft({ price: value })}
               keyboardType="number-pad"
               placeholder="Например: 12 500 000"
               placeholderTextColor="#939393"
@@ -116,6 +114,7 @@ export default function AgencyCreateListingScreen() {
                   onPress={() => {
                     setPropertyType(item);
                     setPropertyTypeModalOpen(false);
+                    updateListingDraft({ propertyType: item });
                   }}>
                   <Text style={styles.modalItemText}>{item}</Text>
                 </Pressable>
@@ -137,6 +136,7 @@ export default function AgencyCreateListingScreen() {
                   onPress={() => {
                     setDealType(item);
                     setDealTypeModalOpen(false);
+                    updateListingDraft({ dealType: item });
                   }}>
                   <Text style={styles.modalItemText}>{item}</Text>
                 </Pressable>

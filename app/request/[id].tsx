@@ -1,16 +1,104 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { getListingById } from '@/constants/userListings';
-import { getUserRequestById } from '@/constants/userRequests';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { EmptyState } from '@/components/EmptyState';
+import { StatusBadge } from '@/components/StatusBadge';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchApplications, fetchListingById } from '@/lib/api';
+import { mapApiListingToCatalogListing } from '@/lib/listings';
+import { mapApplicationToUserRequest, type UserRequestViewModel } from '@/lib/applications';
 
 export default function RequestDetailsScreen() {
   const router = useRouter();
+  const { session } = useAuth();
   const { id } = useLocalSearchParams<{ id?: string }>();
+  const [request, setRequest] = useState<UserRequestViewModel | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  const request = getUserRequestById(id);
-  const listing = getListingById(request?.listingId);
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!id || !session?.token) {
+      setRequest(null);
+      setLoading(false);
+      setLoadError('Войдите в аккаунт и выберите заявку');
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setLoading(true);
+    setLoadError(null);
+
+    fetchApplications(session.token)
+      .then(async (items) => {
+        const target = items.find((item) => String(item.id) === id);
+
+        if (!target) {
+          if (!cancelled) {
+            setRequest(null);
+            setLoadError('Откройте список заявок и выберите актуальную заявку');
+          }
+          return;
+        }
+
+        let listing = null;
+        try {
+          listing = await fetchListingById(target.listing_id);
+        } catch {
+          listing = null;
+        }
+
+        if (!cancelled) {
+          setRequest(mapApplicationToUserRequest(target, listing));
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setRequest(null);
+          setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить заявку');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, session?.token]);
+
+  const listing = useMemo(() => {
+    if (!request?.listing) {
+      return null;
+    }
+
+    return mapApiListingToCatalogListing(request.listing);
+  }, [request?.listing]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.header}>
+          <Pressable style={styles.headerBtn} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={20} color="#3A3A3A" />
+          </Pressable>
+          <Text style={styles.headerTitle}>Заявка</Text>
+          <View style={styles.headerBtn} />
+        </View>
+        <View style={styles.emptyWrap}>
+          <ActivityIndicator color="#70A0FF" />
+          <Text style={styles.loadingText}>Загружаем заявку...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!request) {
     return (
@@ -23,10 +111,13 @@ export default function RequestDetailsScreen() {
           <View style={styles.headerBtn} />
         </View>
         <View style={styles.emptyWrap}>
-          <Text style={styles.emptyTitle}>Заявка не найдена</Text>
-          <Pressable style={styles.primaryBtn} onPress={() => router.replace('/(tabs)/requests')}>
-            <Text style={styles.primaryBtnText}>Вернуться к заявкам</Text>
-          </Pressable>
+          <EmptyState
+            icon="document-text-outline"
+            title="Заявка не найдена"
+            description={loadError || 'Откройте список заявок и выберите актуальную заявку'}
+            actionLabel="Вернуться к заявкам"
+            onAction={() => router.replace('/(tabs)/requests')}
+          />
         </View>
       </SafeAreaView>
     );
@@ -60,9 +151,7 @@ export default function RequestDetailsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Статус заявки</Text>
           <View style={styles.statusRow}>
-            <View style={[styles.statusBadge, { backgroundColor: request.bg }]}>
-              <Text style={[styles.statusText, { color: request.color }]}>{request.status}</Text>
-            </View>
+            <StatusBadge label={request.status} backgroundColor={request.bg} textColor={request.color} size="md" />
             <Text style={styles.dateText}>{request.date}</Text>
           </View>
           <Text style={styles.noteText}>{request.note}</Text>
@@ -161,14 +250,6 @@ const styles = StyleSheet.create({
   section: { gap: 10 },
   sectionTitle: { fontSize: 18, lineHeight: 27, color: '#3A3A3A', fontWeight: '600' },
   statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  statusBadge: {
-    borderRadius: 999,
-    minHeight: 30,
-    paddingHorizontal: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusText: { fontSize: 13, lineHeight: 20, fontWeight: '600' },
   dateText: { fontSize: 13, lineHeight: 20, color: '#939393' },
   noteText: {
     backgroundColor: '#FFFFFF',
@@ -221,10 +302,10 @@ const styles = StyleSheet.create({
   secondaryBtnText: { fontSize: 15, lineHeight: 22, color: '#70A0FF', fontWeight: '600' },
   emptyWrap: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
-    gap: 16,
+    padding: 16,
+    alignItems: 'center',
+    gap: 10,
   },
-  emptyTitle: { fontSize: 18, lineHeight: 27, color: '#3A3A3A', fontWeight: '600' },
+  loadingText: { fontSize: 13, lineHeight: 20, color: '#737373' },
 });

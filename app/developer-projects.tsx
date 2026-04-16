@@ -1,12 +1,72 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
-import { DEVELOPER_PROJECTS } from '@/constants/developerData';
+import { EmptyState } from '@/components/EmptyState';
+import { StatusBadge } from '@/components/StatusBadge';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchProjects, type ApiProject } from '@/lib/api';
+import { CARD_RADIUS, ELEVATED_CARD_SHADOW } from '@/constants/ui';
+
+function formatProjectDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(date);
+}
 
 export default function DeveloperProjectsScreen() {
   const router = useRouter();
+  const { session } = useAuth();
+  const [projects, setProjects] = useState<ApiProject[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!session?.token) {
+      setProjects([]);
+      setLoading(false);
+      setError('Нужно заново войти в аккаунт.');
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    fetchProjects(session.token)
+      .then((nextProjects) => {
+        if (cancelled) {
+          return;
+        }
+
+        setProjects(nextProjects);
+      })
+      .catch((nextError) => {
+        if (cancelled) {
+          return;
+        }
+
+        setError(nextError instanceof Error ? nextError.message : 'Не удалось загрузить проекты.');
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.token]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -24,29 +84,47 @@ export default function DeveloperProjectsScreen() {
           showsVerticalScrollIndicator={false}
           bounces={false}
           overScrollMode="never">
-          {DEVELOPER_PROJECTS.map((project) => (
+          {!loading && error ? (
+            <EmptyState
+              icon="alert-circle-outline"
+              title="Не удалось загрузить проекты"
+              description={error}
+            />
+          ) : null}
+
+          {!loading && !error && projects.length === 0 ? (
+            <EmptyState
+              icon="business-outline"
+              title="Пока нет проектов"
+              description="Создайте первый проект, чтобы он появился в этом разделе"
+            />
+          ) : null}
+
+          {projects.map((project) => (
             <Pressable
               key={project.id}
               style={styles.projectCard}
-              onPress={() => router.push({ pathname: '/developer-project-view/[id]', params: { id: project.id } })}>
-              <Text style={styles.projectTitle}>{project.title}</Text>
+              onPress={() =>
+                router.push({ pathname: '/developer-project-view/[id]', params: { id: String(project.id) } })
+              }>
+              <Text style={styles.projectTitle}>{project.name}</Text>
 
-              <View style={[styles.statusPill, { backgroundColor: project.statusBg }]}>
-                <Text style={[styles.statusText, { color: project.statusColor }]}>{project.status}</Text>
-              </View>
+              <StatusBadge label="Активен" backgroundColor="#E8F5E9" textColor="#388E3C" />
 
               <View style={styles.statsRow}>
                 <View style={styles.statColumn}>
-                  <Text style={styles.statLabel}>Объектов</Text>
-                  <Text style={styles.statValue}>{project.units}</Text>
+                  <Text style={styles.statLabel}>Город</Text>
+                  <Text style={styles.statValueSmall}>{project.city}</Text>
                 </View>
                 <View style={styles.statColumn}>
-                  <Text style={styles.statLabel}>Просмотры</Text>
-                  <Text style={styles.statValue}>{project.views}</Text>
+                  <Text style={styles.statLabel}>ID</Text>
+                  <Text style={styles.statValue}>{project.id}</Text>
                 </View>
               </View>
 
-              {project.createdAt ? <Text style={styles.createdText}>{project.createdAt}</Text> : null}
+              {project.created_at ? (
+                <Text style={styles.createdText}>Создан: {formatProjectDate(project.created_at)}</Text>
+              ) : null}
             </Pressable>
           ))}
         </ScrollView>
@@ -103,30 +181,18 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   projectCard: {
-    borderRadius: 14,
+    borderRadius: CARD_RADIUS,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 16,
+    ...ELEVATED_CARD_SHADOW,
   },
   projectTitle: {
     fontSize: 16,
     lineHeight: 24,
     fontWeight: '500',
     color: '#3A3A3A',
-  },
-  statusPill: {
-    marginTop: 8,
-    alignSelf: 'flex-start',
-    minHeight: 26,
-    borderRadius: 999,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '500',
   },
   statsRow: {
     marginTop: 12,
@@ -145,6 +211,13 @@ const styles = StyleSheet.create({
     marginTop: 3,
     fontSize: 20,
     lineHeight: 30,
+    fontWeight: '500',
+    color: '#3A3A3A',
+  },
+  statValueSmall: {
+    marginTop: 3,
+    fontSize: 16,
+    lineHeight: 24,
     fontWeight: '500',
     color: '#3A3A3A',
   },

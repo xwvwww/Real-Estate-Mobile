@@ -1,13 +1,80 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AgencyBottomBar } from '@/components/AgencyBottomBar';
-import { AGENCY_REQUESTS } from '@/constants/agencyData';
+import { EmptyState } from '@/components/EmptyState';
+import { StatusBadge } from '@/components/StatusBadge';
+import { CARD_RADIUS, LIGHT_CARD_SHADOW } from '@/constants/ui';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchApplications, fetchListingById } from '@/lib/api';
+import { mapApplicationToCompanyRequest, type CompanyRequestViewModel } from '@/lib/applications';
 
 export default function AgencyRequestsScreen() {
   const router = useRouter();
+  const { session } = useAuth();
+  const [requests, setRequests] = useState<CompanyRequestViewModel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!session?.token) {
+      setRequests([]);
+      setLoading(false);
+      setLoadError('Войдите в аккаунт агентства, чтобы увидеть заявки');
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setLoading(true);
+    setLoadError(null);
+
+    fetchApplications(session.token)
+      .then(async (items) => {
+        const listingEntries = await Promise.all(
+          items.map(async (item) => {
+            try {
+              const listing = await fetchListingById(item.listing_id, session.token);
+              return [String(item.listing_id), listing] as const;
+            } catch {
+              return [String(item.listing_id), null] as const;
+            }
+          })
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        const listingMap = new Map(listingEntries);
+        setRequests(
+          items.map((item) =>
+            mapApplicationToCompanyRequest(item, listingMap.get(String(item.listing_id)) ?? null)
+          )
+        );
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setRequests([]);
+          setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить заявки');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadTick, session?.token]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -21,16 +88,50 @@ export default function AgencyRequestsScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never">
-        {AGENCY_REQUESTS.map((item) => (
-          <Pressable key={item.id} style={styles.card} onPress={() => router.push(`/agency-request-view/${item.id}` as any)}>
-            <Text style={styles.objectTitle}>{item.objectTitle}</Text>
+        {loading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator color="#70A0FF" />
+            <Text style={styles.loadingText}>Загружаем заявки...</Text>
+          </View>
+        ) : null}
+
+        {!loading && loadError ? (
+          <EmptyState
+            icon="cloud-offline-outline"
+            title="Не удалось загрузить заявки"
+            description={loadError}
+            actionLabel="Повторить"
+            onAction={() => setReloadTick((value) => value + 1)}
+          />
+        ) : null}
+
+        {!loading && !loadError && requests.length === 0 ? (
+          <EmptyState
+            icon="document-text-outline"
+            title="Пока нет заявок"
+            description="Когда пользователи начнут откликаться, заявки появятся здесь"
+          />
+        ) : null}
+
+        {requests.map((item) => (
+          <Pressable
+            key={item.id}
+            style={styles.card}
+            onPress={() =>
+              router.push({ pathname: '/agency-request-view/[id]', params: { id: item.id } })
+            }>
+            <Text style={styles.objectTitle}>{item.title}</Text>
             <Text style={styles.applicantName}>{item.applicantName}</Text>
-            <Text style={styles.summary}>{item.summary}</Text>
+            <Text style={styles.summary} numberOfLines={2}>
+              {item.summary}
+            </Text>
 
             <View style={styles.bottomRow}>
-              <View style={[styles.statusPill, { backgroundColor: item.status.bgColor }]}>
-                <Text style={[styles.statusText, { color: item.status.textColor }]}>{item.status.label}</Text>
-              </View>
+              <StatusBadge
+                label={item.status}
+                backgroundColor={item.bg}
+                textColor={item.color}
+              />
               <Ionicons name="chevron-forward" size={18} color="#B6B6B6" />
             </View>
           </Pressable>
@@ -72,17 +173,24 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     gap: 12,
   },
+  loadingWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 24,
+  },
+  loadingText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#737373',
+  },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: CARD_RADIUS,
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 16,
-    shadowColor: '#000000',
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    elevation: 1,
+    ...LIGHT_CARD_SHADOW,
   },
   objectTitle: {
     fontSize: 15,
@@ -107,17 +215,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  statusPill: {
-    height: 26,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusText: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '500',
   },
 });

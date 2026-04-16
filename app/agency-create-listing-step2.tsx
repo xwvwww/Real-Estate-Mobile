@@ -3,6 +3,8 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AppDropdown from '@/components/AppDropdown';
+import { updateListingDraft, useListingDraft } from '@/stores/listingDraftStore';
 
 type MapRegion = {
   latitude: number;
@@ -28,22 +30,23 @@ const CITY_OPTIONS = [
 
 export default function AgencyCreateListingStep2Screen() {
   const router = useRouter();
+  const draft = useListingDraft();
   const MapView = MapModule?.default ?? MapModule?.MapView;
   const Marker = MapModule?.Marker;
   const UrlTile = MapModule?.UrlTile;
   const hasNativeMap = Boolean(MapView && Marker && UrlTile);
 
-  const [city, setCity] = useState('');
   const [cityOpen, setCityOpen] = useState(false);
-  const [address, setAddress] = useState('');
   const [region, setRegion] = useState<MapRegion>({
-    latitude: 43.238,
-    longitude: 76.944,
+    latitude: draft.latitude ?? 43.238,
+    longitude: draft.longitude ?? 76.944,
     latitudeDelta: 0.08,
     longitudeDelta: 0.08,
   });
   const [pickedLocation, setPickedLocation] = useState<{ latitude: number; longitude: number } | null>(
-    null,
+    draft.latitude && draft.longitude
+      ? { latitude: draft.latitude, longitude: draft.longitude }
+      : null,
   );
 
   const onZoom = (dir: 'in' | 'out') => {
@@ -60,7 +63,6 @@ export default function AgencyCreateListingStep2Screen() {
   };
 
   const onSelectCity = (nextCity: (typeof CITY_OPTIONS)[number]) => {
-    setCity(nextCity.label);
     setCityOpen(false);
     setRegion({
       latitude: nextCity.latitude,
@@ -72,6 +74,7 @@ export default function AgencyCreateListingStep2Screen() {
       latitude: nextCity.latitude,
       longitude: nextCity.longitude,
     });
+    updateListingDraft({ city: nextCity.label, latitude: nextCity.latitude, longitude: nextCity.longitude });
   };
 
   return (
@@ -110,38 +113,28 @@ export default function AgencyCreateListingStep2Screen() {
 
           <View style={styles.fieldWrap}>
             <Text style={styles.fieldLabel}>Город*</Text>
-            <View style={styles.dropdownWrap}>
-              <Pressable style={styles.dropdown} onPress={() => setCityOpen((prev) => !prev)}>
-                <Text style={[styles.dropdownText, !city && styles.dropdownPlaceholder]}>
-                  {city || 'Выберите город'}
-                </Text>
-                <Ionicons name={cityOpen ? 'chevron-up' : 'chevron-down'} size={18} color="#939393" />
-              </Pressable>
-
-              {cityOpen ? (
-                <View style={styles.dropdownMenu}>
-                  {CITY_OPTIONS.map((option, index) => (
-                    <Pressable
-                      key={option.label}
-                      style={[styles.dropdownItem, index === CITY_OPTIONS.length - 1 && styles.dropdownItemLast]}
-                      onPress={() => onSelectCity(option)}>
-                      <Text style={[styles.dropdownItemText, city === option.label && styles.dropdownItemTextActive]}>
-                        {option.label}
-                      </Text>
-                      {city === option.label ? <Ionicons name="checkmark" size={16} color="#70A0FF" /> : null}
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
-            </View>
+            <AppDropdown
+              value={draft.city}
+              placeholder="Выберите город"
+              open={cityOpen}
+              options={CITY_OPTIONS.map((option) => ({ label: option.label, value: option.label }))}
+              onToggle={() => setCityOpen((prev) => !prev)}
+              onSelect={(value) => {
+                const option = CITY_OPTIONS.find((item) => item.label === value);
+                if (option) {
+                  onSelectCity(option);
+                }
+              }}
+              triggerStyle={styles.dropdown}
+            />
           </View>
 
           <View style={styles.fieldWrap}>
             <Text style={styles.fieldLabel}>Адрес*</Text>
             <TextInput
               style={styles.input}
-              value={address}
-              onChangeText={setAddress}
+              value={draft.address}
+              onChangeText={(value) => updateListingDraft({ address: value })}
               placeholder="Например: ул. Абая 150"
               placeholderTextColor="#939393"
             />
@@ -154,7 +147,11 @@ export default function AgencyCreateListingStep2Screen() {
                   style={StyleSheet.absoluteFill}
                   region={region}
                   onRegionChangeComplete={setRegion}
-                  onPress={(event: any) => setPickedLocation(event.nativeEvent.coordinate)}>
+                  onPress={(event: any) => {
+                    const coordinate = event.nativeEvent.coordinate;
+                    setPickedLocation(coordinate);
+                    updateListingDraft({ latitude: coordinate.latitude, longitude: coordinate.longitude });
+                  }}>
                   <UrlTile urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maximumZ={19} />
                   {pickedLocation ? <Marker coordinate={pickedLocation} /> : null}
                 </MapView>
@@ -174,7 +171,7 @@ export default function AgencyCreateListingStep2Screen() {
               </View>
 
               <View style={styles.mapBadge}>
-                <Text style={styles.mapBadgeTitle}>{city || 'Казахстан'}</Text>
+                <Text style={styles.mapBadgeTitle}>{draft.city || 'Казахстан'}</Text>
                 <Text style={styles.mapBadgeSubtitle}>Выберите точку на карте</Text>
               </View>
             </View>
@@ -287,63 +284,8 @@ const styles = StyleSheet.create({
     color: '#3A3A3A',
     fontWeight: '500',
   },
-  dropdownWrap: {
-    position: 'relative',
-    zIndex: 10,
-  },
   dropdown: {
-    height: 48,
-    borderRadius: 10,
-    backgroundColor: '#F8F8F8',
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  dropdownText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#3A3A3A',
-  },
-  dropdownPlaceholder: {
-    color: '#939393',
-  },
-  dropdownMenu: {
-    position: 'absolute',
-    top: 52,
-    left: 0,
-    right: 0,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-    overflow: 'hidden',
-    shadowColor: '#101828',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    elevation: 8,
-  },
-  dropdownItem: {
-    minHeight: 44,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  dropdownItemLast: {
-    borderBottomWidth: 0,
-  },
-  dropdownItemText: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: '#3A3A3A',
-  },
-  dropdownItemTextActive: {
-    color: '#70A0FF',
-    fontWeight: '600',
+    borderWidth: 0,
   },
   input: {
     height: 48,

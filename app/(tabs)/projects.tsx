@@ -1,20 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
+  ActivityIndicator,
   Animated,
   Modal,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AppDropdown from '@/components/AppDropdown';
+import { EmptyState } from '@/components/EmptyState';
 import UserMapCard, { type MapRegion, type UserMapMarker } from '@/components/UserMapCard';
-import { USER_LISTINGS, type UserListing } from '@/constants/userListings';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchListings } from '@/lib/api';
+import { mapApiListingToCatalogListing, mapUserListingToCatalogListing, type CatalogListing } from '@/lib/listings';
+import { USER_LISTINGS } from '@/constants/userListings';
 import { toggleFavorite, useIsFavorite } from '@/stores/favoritesStore';
 
 type ObjectType = 'all' | 'Квартира' | 'Студия' | 'Пентхаус' | 'Дом' | 'Новостройка';
@@ -26,32 +33,29 @@ const DEFAULT_REGION: MapRegion = {
   longitudeDelta: 16,
 };
 
-const CITY_REGIONS: Record<string, MapRegion> = Object.fromEntries(
-  USER_LISTINGS.map((item) => [
-    item.city,
-    {
-      latitude: item.latitude,
-      longitude: item.longitude,
-      latitudeDelta: 0.45,
-      longitudeDelta: 0.45,
-    },
-  ])
-);
+const FALLBACK_CATALOG_LISTINGS = USER_LISTINGS.map((item, index) => mapUserListingToCatalogListing(item, index));
 
-function isInBounds(item: UserListing, region: MapRegion) {
+function isInBounds(item: CatalogListing, region: MapRegion) {
   const latMin = region.latitude - region.latitudeDelta / 2;
   const latMax = region.latitude + region.latitudeDelta / 2;
   const lngMin = region.longitude - region.longitudeDelta / 2;
   const lngMax = region.longitude + region.longitudeDelta / 2;
-  return item.latitude >= latMin && item.latitude <= latMax && item.longitude >= lngMin && item.longitude <= lngMax;
+  return (
+    typeof item.latitude === 'number' &&
+    typeof item.longitude === 'number' &&
+    item.latitude >= latMin &&
+    item.latitude <= latMax &&
+    item.longitude >= lngMin &&
+    item.longitude <= lngMax
+  );
 }
 
-function StatRow({ beds, area, floor }: { beds: string; area: string; floor: string }) {
+function StatRow({ rooms, area, floor }: { rooms: string; area: string; floor: string }) {
   return (
     <View style={styles.statsRow}>
       <View style={styles.statItem}>
         <Ionicons name="bed-outline" size={14} color="#737373" />
-        <Text style={styles.statText}>{beds}</Text>
+        <Text style={styles.statText}>{rooms}</Text>
       </View>
       <View style={styles.statItem}>
         <Ionicons name="resize-outline" size={14} color="#737373" />
@@ -68,15 +72,18 @@ function StatRow({ beds, area, floor }: { beds: string; area: string; floor: str
 function ListingCard({
   listing,
   onPressDetails,
+  onToggleFavorite: onToggleFavoritePress,
 }: {
-  listing: UserListing;
+  listing: CatalogListing;
   onPressDetails: () => void;
+  onToggleFavorite: (listingId: string) => void;
 }) {
-  const isFavorite = useIsFavorite(listing.id);
+  const { session } = useAuth();
+  const isFavorite = useIsFavorite(listing.id, session);
   const heartScale = useRef(new Animated.Value(1)).current;
 
-  const onToggleFavorite = () => {
-    toggleFavorite(listing.id);
+  const handleToggleFavorite = () => {
+    onToggleFavoritePress(listing.id);
     heartScale.setValue(0.82);
     Animated.spring(heartScale, {
       toValue: 1,
@@ -91,13 +98,13 @@ function ListingCard({
       <View style={styles.cardImage}>
         <Image source={listing.image} style={styles.cardPhoto} contentFit="cover" />
         <View style={styles.tag}>
-          <Text style={styles.tagText}>{listing.type}</Text>
+          <Text style={styles.tagText}>{listing.propertyType}</Text>
         </View>
         <Pressable
           style={styles.favoriteCircle}
           onPress={(event) => {
             event.stopPropagation();
-            onToggleFavorite();
+            handleToggleFavorite();
           }}>
           <Animated.View style={{ transform: [{ scale: heartScale }] }}>
             <Ionicons
@@ -113,7 +120,7 @@ function ListingCard({
         <Text style={styles.price}>{listing.price}</Text>
         <Text style={styles.title}>{listing.title}</Text>
         <Text style={styles.address}>{listing.address}</Text>
-        <StatRow beds={listing.beds} area={listing.area} floor={listing.floor} />
+        <StatRow rooms={listing.roomsLabel} area={listing.areaLabel} floor={listing.floorLabel} />
         <Pressable
           style={styles.moreBtn}
           onPress={(event) => {
@@ -129,9 +136,15 @@ function ListingCard({
 
 export default function UserCatalogScreen() {
   const router = useRouter();
+  const { session } = useAuth();
   const [dealType, setDealType] = useState<'buy' | 'rent'>('buy');
   const segmentAnim = useRef(new Animated.Value(0)).current;
   const [segmentWidth, setSegmentWidth] = useState(0);
+
+  const [catalogListings, setCatalogListings] = useState<CatalogListing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
 
   const [filterVisible, setFilterVisible] = useState(false);
   const [city, setCity] = useState('');
@@ -145,7 +158,54 @@ export default function UserCatalogScreen() {
   const [showList, setShowList] = useState(true);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
 
-  const cityOptions = useMemo(() => [...new Set(USER_LISTINGS.map((item) => item.city))], []);
+  useEffect(() => {
+    let cancelled = false;
+
+    setLoading(true);
+    setLoadError(null);
+
+    fetchListings({ dealType })
+      .then((items) => {
+        if (cancelled) {
+          return;
+        }
+        const mappedItems = items.map((item, index) => mapApiListingToCatalogListing(item, index));
+        setCatalogListings(mappedItems.length > 0 ? mappedItems : FALLBACK_CATALOG_LISTINGS);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) {
+          return;
+        }
+        setCatalogListings([]);
+        setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить каталог');
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dealType, reloadTick]);
+
+  const cityOptions = useMemo(() => [...new Set(catalogListings.map((item) => item.city))], [catalogListings]);
+
+  const cityRegions = useMemo(() => {
+    return catalogListings.reduce<Record<string, MapRegion>>((regions, item) => {
+      if (item.latitude != null && item.longitude != null && regions[item.city] === undefined) {
+        regions[item.city] = {
+          latitude: item.latitude,
+          longitude: item.longitude,
+          latitudeDelta: 0.45,
+          longitudeDelta: 0.45,
+        };
+      }
+
+      return regions;
+    }, {});
+  }, [catalogListings]);
 
   const onSelectDealType = (nextType: 'buy' | 'rent') => {
     setDealType(nextType);
@@ -162,14 +222,11 @@ export default function UserCatalogScreen() {
   });
 
   const filteredListings = useMemo(() => {
-    return USER_LISTINGS.filter((item) => {
-      if (item.dealType !== dealType) {
-        return false;
-      }
+    return catalogListings.filter((item) => {
       if (city && item.city !== city) {
         return false;
       }
-      if (objectType !== 'all' && item.type !== objectType) {
+      if (objectType !== 'all' && item.propertyType !== objectType) {
         return false;
       }
       const fromValue = Number(priceFrom.replace(/\s/g, ''));
@@ -185,17 +242,19 @@ export default function UserCatalogScreen() {
       }
       return true;
     });
-  }, [areaFilterRegion, city, dealType, objectType, priceFrom, priceTo]);
+  }, [areaFilterRegion, catalogListings, city, objectType, priceFrom, priceTo]);
 
   const markers = useMemo<UserMapMarker[]>(
     () =>
-      filteredListings.map((item) => ({
-        id: `m-${item.id}`,
-        lat: item.latitude,
-        lng: item.longitude,
-        price: item.price.replace(' 000 000', 'M').replace(' ₸', ' ₸'),
-        listingId: item.id,
-      })),
+      filteredListings
+        .filter((item) => item.latitude != null && item.longitude != null)
+        .map((item) => ({
+          id: `m-${item.id}`,
+          lat: item.latitude as number,
+          lng: item.longitude as number,
+          price: item.price,
+          listingId: item.id,
+        })),
     [filteredListings]
   );
 
@@ -208,8 +267,8 @@ export default function UserCatalogScreen() {
   }, [filteredListings, markers, selectedMarkerId]);
 
   const applyFilter = () => {
-    if (city && CITY_REGIONS[city]) {
-      setRegion(CITY_REGIONS[city]);
+    if (city && cityRegions[city]) {
+      setRegion(cityRegions[city]);
       setAreaFilterRegion(null);
       const firstCityListing = filteredListings.find((item) => item.city === city);
       setSelectedMarkerId(firstCityListing ? `m-${firstCityListing.id}` : null);
@@ -240,8 +299,21 @@ export default function UserCatalogScreen() {
       ? `Объекты: ${city}`
       : 'Объекты по Казахстану';
 
+  const showNoResults = !loading && !loadError && filteredListings.length === 0;
+
+  const handleToggleFavorite = async (listingId: string) => {
+    try {
+      await toggleFavorite(listingId, session);
+    } catch (error) {
+      Alert.alert(
+        'Не удалось обновить избранное',
+        error instanceof Error ? error.message : 'Попробуйте ещё раз.'
+      );
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <View style={styles.headerBtnPlaceholder} />
         <Text style={styles.headerTitle}>Каталог объектов</Text>
@@ -250,7 +322,7 @@ export default function UserCatalogScreen() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.segmented} onLayout={(e) => setSegmentWidth(e.nativeEvent.layout.width - 8)}>
           <Animated.View
             pointerEvents="none"
@@ -282,6 +354,25 @@ export default function UserCatalogScreen() {
           citySubtitle={mapSubtitle}
         />
 
+        {loading ? (
+          <View style={styles.loadingState}>
+            <ActivityIndicator color="#70A0FF" />
+            <Text style={styles.loadingText}>Загружаем объекты...</Text>
+          </View>
+        ) : null}
+
+        {loadError ? (
+          <EmptyState
+            icon="cloud-offline-outline"
+            title="Не удалось загрузить каталог"
+            description={loadError}
+            actionLabel="Повторить"
+            onAction={() => setReloadTick((value) => value + 1)}
+            elevated={false}
+            style={styles.stateBlock}
+          />
+        ) : null}
+
         {selectedListing ? (
           <Pressable
             style={styles.previewCard}
@@ -300,13 +391,24 @@ export default function UserCatalogScreen() {
           </Pressable>
         ) : null}
 
-        <Text style={styles.foundText}>Найдено {filteredListings.length} объектов</Text>
+        {showNoResults ? (
+          <EmptyState
+            icon="search-outline"
+            title="Объекты не найдены"
+            description="Измените фильтры или попробуйте другой город"
+            elevated={false}
+            style={styles.stateBlock}
+          />
+        ) : (
+          <Text style={styles.foundText}>Найдено {filteredListings.length} объектов</Text>
+        )}
 
         {showList
           ? filteredListings.map((listing) => (
               <ListingCard
                 key={listing.id}
                 listing={listing}
+                onToggleFavorite={handleToggleFavorite}
                 onPressDetails={() =>
                   router.push({ pathname: '/object/[id]', params: { id: listing.id } })
                 }
@@ -315,7 +417,7 @@ export default function UserCatalogScreen() {
           : null}
       </ScrollView>
 
-      <Modal visible={filterVisible} animationType="slide" transparent onRequestClose={() => setFilterVisible(false)}>
+      <Modal visible={filterVisible} animationType="fade" transparent onRequestClose={() => setFilterVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
@@ -327,57 +429,22 @@ export default function UserCatalogScreen() {
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalContent}>
               <Text style={styles.filterLabel}>Город</Text>
-              <View style={styles.dropdownWrap}>
-                <Pressable
-                  style={[styles.filterInput, styles.dropdownTrigger]}
-                  onPress={() => setCityDropdownVisible((prev) => !prev)}>
-                  <Text style={city ? styles.dropdownValue : styles.dropdownPlaceholder}>
-                    {city || 'Выберите город'}
-                  </Text>
-                  <Ionicons
-                    name={cityDropdownVisible ? 'chevron-up' : 'chevron-down'}
-                    size={18}
-                    color="#737373"
-                  />
-                </Pressable>
-
-                {cityDropdownVisible ? (
-                  <View style={styles.dropdownMenu}>
-                    <ScrollView nestedScrollEnabled style={styles.dropdownScroll} showsVerticalScrollIndicator={false}>
-                      <Pressable
-                        style={[styles.dropdownItem, !city && styles.dropdownItemActive]}
-                        onPress={() => {
-                          setCity('');
-                          setCityDropdownVisible(false);
-                        }}>
-                        <Text style={[styles.dropdownItemText, !city && styles.dropdownItemTextActive]}>
-                          Все города
-                        </Text>
-                        {!city ? <Ionicons name="checkmark" size={18} color="#70A0FF" /> : null}
-                      </Pressable>
-
-                      {cityOptions.map((option) => (
-                        <Pressable
-                          key={option}
-                          style={[styles.dropdownItem, city === option && styles.dropdownItemActive]}
-                          onPress={() => {
-                            setCity(option);
-                            setCityDropdownVisible(false);
-                          }}>
-                          <Text
-                            style={[
-                              styles.dropdownItemText,
-                              city === option && styles.dropdownItemTextActive,
-                            ]}>
-                            {option}
-                          </Text>
-                          {city === option ? <Ionicons name="checkmark" size={18} color="#70A0FF" /> : null}
-                        </Pressable>
-                      ))}
-                    </ScrollView>
-                  </View>
-                ) : null}
-              </View>
+              <AppDropdown
+                value={city}
+                placeholder="Выберите город"
+                open={cityDropdownVisible}
+                maxMenuHeight={220}
+                options={[
+                  { label: 'Все города', value: '' },
+                  ...cityOptions.map((option) => ({ label: option, value: option })),
+                ]}
+                onToggle={() => setCityDropdownVisible((prev) => !prev)}
+                onSelect={(value) => {
+                  setCity(value);
+                  setCityDropdownVisible(false);
+                }}
+                triggerStyle={styles.filterInput}
+              />
 
               <Text style={styles.filterLabel}>Тип недвижимости</Text>
               <View style={styles.typeRow}>
@@ -435,6 +502,7 @@ export default function UserCatalogScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
+  scroll: { flex: 1, backgroundColor: '#FFFFFF' },
   header: {
     height: 56,
     borderBottomWidth: 1,
@@ -447,7 +515,21 @@ const styles = StyleSheet.create({
   headerBtnPlaceholder: { width: 40, height: 40 },
   headerBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 18, lineHeight: 27, color: '#3A3A3A', fontWeight: '600' },
-  content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24, gap: 12 },
+  content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12, gap: 12 },
+  loadingState: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  loadingText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#737373',
+  },
+  stateBlock: {
+    marginTop: 4,
+  },
   segmented: {
     height: 40,
     backgroundColor: '#F8F8F8',
@@ -559,63 +641,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     color: '#3A3A3A',
     fontSize: 15,
-  },
-  dropdownTrigger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  dropdownWrap: {
-    position: 'relative',
-    zIndex: 10,
-  },
-  dropdownValue: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#3A3A3A',
-  },
-  dropdownPlaceholder: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#939393',
-  },
-  dropdownMenu: {
-    marginTop: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
-    backgroundColor: '#FFFFFF',
-    overflow: 'hidden',
-    shadowColor: '#101828',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    elevation: 8,
-  },
-  dropdownScroll: {
-    maxHeight: 220,
-  },
-  dropdownItem: {
-    minHeight: 44,
-    paddingHorizontal: 12,
-    paddingRight: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  dropdownItemActive: {
-    backgroundColor: '#F0F7FF',
-  },
-  dropdownItemText: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: '#3A3A3A',
-  },
-  dropdownItemTextActive: {
-    color: '#70A0FF',
-    fontWeight: '600',
   },
   typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   typeChip: {

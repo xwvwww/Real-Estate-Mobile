@@ -3,7 +3,10 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
+import { EmptyState } from '@/components/EmptyState';
+import { StatusBadge } from '@/components/StatusBadge';
 import { DEVELOPER_OBJECTS } from '@/constants/developerData';
+import { CARD_RADIUS, ELEVATED_CARD_SHADOW } from '@/constants/ui';
 
 export default function DeveloperObjectsScreen() {
   const router = useRouter();
@@ -24,6 +27,10 @@ export default function DeveloperObjectsScreen() {
           showsVerticalScrollIndicator={false}
           bounces={false}
           overScrollMode="never">
+          {DEVELOPER_OBJECTS.length === 0 ? (
+            <EmptyState icon="home-outline" title="Пока нет объектов" description="Добавленные объекты будут отображаться в этом разделе" />
+          ) : null}
+
           {DEVELOPER_OBJECTS.map((item) => (
             <Pressable
               key={item.id}
@@ -33,9 +40,7 @@ export default function DeveloperObjectsScreen() {
               <Text style={styles.project}>{item.project}</Text>
 
               <View style={styles.metaRow}>
-                <View style={[styles.statusPill, { backgroundColor: item.status.bg }]}>
-                  <Text style={[styles.statusText, { color: item.status.color }]}>{item.status.label}</Text>
-                </View>
+                <StatusBadge label={item.status.label} backgroundColor={item.status.bg} textColor={item.status.color} />
 
                 <View style={styles.viewsWrap}>
                   <Ionicons name="eye-outline" size={14} color="#939393" />
@@ -101,10 +106,11 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: CARD_RADIUS,
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 16,
+    ...ELEVATED_CARD_SHADOW,
   },
   title: {
     fontSize: 16,
@@ -123,17 +129,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  statusPill: {
-    minHeight: 26,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    justifyContent: 'center',
-  },
-  statusText: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '500',
   },
   viewsWrap: {
     flexDirection: 'row',

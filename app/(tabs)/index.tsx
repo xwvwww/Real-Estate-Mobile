@@ -1,22 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useRef } from 'react';
-import { Animated, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { USER_LISTINGS } from '@/constants/userListings';
+import { EmptyState } from '@/components/EmptyState';
+import { StatusBadge } from '@/components/StatusBadge';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchDashboardOverview } from '@/lib/api';
+import {
+  mapDashboardApplicationToRequestItem,
+  mapDashboardFavoriteToRecentListing,
+  type DashboardRequestItem,
+} from '@/lib/dashboard';
+import { mapUserListingToCatalogListing } from '@/lib/listings';
 import { useFavoriteIds } from '@/stores/favoritesStore';
 
-type RequestItem = {
-  id: string;
-  title: string;
-  agency: string;
-  date: string;
-  status: string;
-  statusColor: string;
-  statusBg: string;
-};
-
-const REQUEST_ITEMS: RequestItem[] = [
+const FALLBACK_REQUEST_ITEMS: DashboardRequestItem[] = [
   {
     id: 'q1',
     title: '2-комнатная квартира',
@@ -46,13 +47,81 @@ const REQUEST_ITEMS: RequestItem[] = [
   },
 ];
 
-const RECENT_ITEMS = USER_LISTINGS.slice(0, 3);
+const FALLBACK_RECENT_ITEMS = USER_LISTINGS.slice(0, 3).map((item, index) =>
+  mapUserListingToCatalogListing(item, index)
+);
 
 export default function UserDashboardScreen() {
   const router = useRouter();
-  const favoriteIds = useFavoriteIds();
+  const { session } = useAuth();
+  const favoriteIds = useFavoriteIds(session);
+  const [activeApplicationsCount, setActiveApplicationsCount] = useState(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [recentItems, setRecentItems] = useState(FALLBACK_RECENT_ITEMS);
+  const [recentApplications, setRecentApplications] = useState(FALLBACK_REQUEST_ITEMS);
+  const [loadingOverview, setLoadingOverview] = useState(true);
+  const [overviewError, setOverviewError] = useState<string | null>(null);
   const catalogScale = useRef(new Animated.Value(1)).current;
   const transitionOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!session?.token) {
+      setActiveApplicationsCount(0);
+      setUnreadMessagesCount(0);
+      setRecentItems(FALLBACK_RECENT_ITEMS);
+      setRecentApplications(FALLBACK_REQUEST_ITEMS);
+      setLoadingOverview(false);
+      setOverviewError('Войдите в аккаунт, чтобы увидеть актуальную статистику');
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setLoadingOverview(true);
+    setOverviewError(null);
+
+    fetchDashboardOverview(session.token)
+      .then((overview) => {
+        if (cancelled) {
+          return;
+        }
+
+        setActiveApplicationsCount(overview.active_applications_count);
+        setUnreadMessagesCount(overview.unread_messages_count);
+        setRecentApplications(
+          overview.recent_applications.length > 0
+            ? overview.recent_applications.map(mapDashboardApplicationToRequestItem)
+            : FALLBACK_REQUEST_ITEMS
+        );
+        setRecentItems(
+          overview.recent_listings.length > 0
+            ? overview.recent_listings.map((item, index) =>
+                mapDashboardFavoriteToRecentListing(item, FALLBACK_RECENT_ITEMS[index] ?? null)
+              )
+            : FALLBACK_RECENT_ITEMS
+        );
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setActiveApplicationsCount(0);
+          setUnreadMessagesCount(0);
+          setRecentItems(FALLBACK_RECENT_ITEMS);
+          setRecentApplications(FALLBACK_REQUEST_ITEMS);
+          setOverviewError(error instanceof Error ? error.message : 'Не удалось загрузить dashboard');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingOverview(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.token]);
 
   const openCatalog = () => {
     Animated.parallel([
@@ -74,7 +143,7 @@ export default function UserDashboardScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Личный кабинет</Text>
       </View>
@@ -103,7 +172,7 @@ export default function UserDashboardScreen() {
             <View style={styles.metricIconBg}>
               <Ionicons name="document-text-outline" size={24} color="#70A0FF" />
             </View>
-            <Text style={styles.metricValue}>5</Text>
+            <Text style={styles.metricValue}>{activeApplicationsCount}</Text>
             <Text style={styles.metricLabel}>Активные заявки</Text>
           </Pressable>
 
@@ -113,7 +182,7 @@ export default function UserDashboardScreen() {
             <View style={styles.metricIconBg}>
               <Ionicons name="chatbubble-outline" size={24} color="#70A0FF" />
             </View>
-            <Text style={styles.metricValue}>3</Text>
+            <Text style={styles.metricValue}>{unreadMessagesCount}</Text>
             <Text style={styles.metricLabel}>Сообщения</Text>
           </Pressable>
 
@@ -132,7 +201,24 @@ export default function UserDashboardScreen() {
           </Pressable>
         </View>
 
-        {RECENT_ITEMS.map((item, index) => (
+        {loadingOverview ? (
+          <View style={styles.loadingBlock}>
+            <ActivityIndicator color="#70A0FF" />
+            <Text style={styles.loadingText}>Обновляем dashboard...</Text>
+          </View>
+        ) : null}
+
+        {!loadingOverview && overviewError ? (
+          <EmptyState
+            icon="cloud-offline-outline"
+            title="Данные dashboard частично недоступны"
+            description={overviewError}
+            elevated={false}
+            style={styles.stateBlock}
+          />
+        ) : null}
+
+        {recentItems.map((item, index) => (
           <Pressable
             key={item.id}
             style={styles.recentCard}
@@ -157,7 +243,7 @@ export default function UserDashboardScreen() {
           </Pressable>
         </View>
 
-        {REQUEST_ITEMS.map((item) => (
+        {recentApplications.map((item) => (
           <Pressable key={item.id} style={styles.requestCard} onPress={() => router.push('/(tabs)/requests')}>
             <View style={styles.requestTop}>
               <Text style={styles.requestTitle}>{item.title}</Text>
@@ -166,9 +252,7 @@ export default function UserDashboardScreen() {
             <Text style={styles.requestAgency}>{item.agency}</Text>
             <View style={styles.requestBottom}>
               <Text style={styles.requestDate}>{item.date}</Text>
-              <View style={[styles.statusPill, { backgroundColor: item.statusBg }]}>
-                <Text style={[styles.statusText, { color: item.statusColor }]}>{item.status}</Text>
-              </View>
+              <StatusBadge label={item.status} backgroundColor={item.statusBg} textColor={item.statusColor} />
             </View>
           </Pressable>
         ))}
@@ -181,7 +265,7 @@ export default function UserDashboardScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F8F8F8' },
-  scroll: { backgroundColor: '#F8F8F8' },
+  scroll: { flex: 1, backgroundColor: '#F8F8F8' },
   header: {
     height: 63,
     justifyContent: 'center',
@@ -191,7 +275,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   headerTitle: { fontSize: 20, lineHeight: 28, fontWeight: '600', color: '#333333' },
-  content: { padding: 16, paddingBottom: 24, backgroundColor: '#F8F8F8' },
+  content: { padding: 16, paddingBottom: 12, backgroundColor: '#F8F8F8' },
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   metricCard: {
     borderRadius: 14,
@@ -235,6 +319,20 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { fontSize: 18, lineHeight: 27, color: '#3A3A3A', fontWeight: '600' },
   sectionAction: { fontSize: 14, lineHeight: 21, color: '#70A0FF', fontWeight: '500' },
+  loadingBlock: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 8,
+  },
+  loadingText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#737373',
+  },
+  stateBlock: {
+    marginBottom: 4,
+  },
   recentCard: {
     flexDirection: 'row',
     borderRadius: 14,
@@ -250,7 +348,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     elevation: 2,
   },
-  recentImage: { width: 100, height: 100, borderRadius: 0 },
+  recentImage: { width: 100, height: 124, borderRadius: 0 },
   recentBody: { flex: 1, marginLeft: 12, justifyContent: 'space-between', paddingVertical: 12, paddingRight: 12 },
   recentTitle: { fontSize: 15, lineHeight: 23, color: '#3A3A3A', fontWeight: '600' },
   recentCity: { fontSize: 13, lineHeight: 20, color: '#939393' },
@@ -277,14 +375,6 @@ const styles = StyleSheet.create({
   requestAgency: { fontSize: 13, lineHeight: 20, color: '#939393' },
   requestBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   requestDate: { fontSize: 12, lineHeight: 18, color: '#939393' },
-  statusPill: {
-    paddingHorizontal: 12,
-    height: 26,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusText: { fontSize: 12, lineHeight: 18, fontWeight: '500' },
   transitionOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#111827',

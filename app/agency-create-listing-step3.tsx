@@ -1,16 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { updateListingDraft, useListingDraft } from '@/stores/listingDraftStore';
 
 export default function AgencyCreateListingStep3Screen() {
   const router = useRouter();
-
-  const [roomsCount, setRoomsCount] = useState('');
-  const [area, setArea] = useState('');
-  const [floor, setFloor] = useState('');
-  const [buildingFloors, setBuildingFloors] = useState('');
+  const draft = useListingDraft();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -50,8 +46,8 @@ export default function AgencyCreateListingStep3Screen() {
             <Text style={styles.fieldLabel}>Количество комнат*</Text>
             <TextInput
               style={styles.input}
-              value={roomsCount}
-              onChangeText={setRoomsCount}
+              value={draft.roomsCount}
+              onChangeText={(value) => updateListingDraft({ roomsCount: value })}
               keyboardType="number-pad"
               placeholder="Например: 2"
               placeholderTextColor="#939393"
@@ -62,8 +58,8 @@ export default function AgencyCreateListingStep3Screen() {
             <Text style={styles.fieldLabel}>Площадь (м²)*</Text>
             <TextInput
               style={styles.input}
-              value={area}
-              onChangeText={setArea}
+              value={draft.area}
+              onChangeText={(value) => updateListingDraft({ area: value })}
               keyboardType="number-pad"
               placeholder="Например: 65"
               placeholderTextColor="#939393"
@@ -75,8 +71,8 @@ export default function AgencyCreateListingStep3Screen() {
               <Text style={styles.fieldLabel}>Этаж*</Text>
               <TextInput
                 style={styles.input}
-                value={floor}
-                onChangeText={setFloor}
+                value={draft.floor}
+                onChangeText={(value) => updateListingDraft({ floor: value })}
                 keyboardType="number-pad"
                 placeholder="5"
                 placeholderTextColor="#939393"
@@ -87,8 +83,8 @@ export default function AgencyCreateListingStep3Screen() {
               <Text style={styles.fieldLabel}>Этажность здания*</Text>
               <TextInput
                 style={styles.input}
-                value={buildingFloors}
-                onChangeText={setBuildingFloors}
+                value={draft.totalFloors}
+                onChangeText={(value) => updateListingDraft({ totalFloors: value })}
                 keyboardType="number-pad"
                 placeholder="9"
                 placeholderTextColor="#939393"

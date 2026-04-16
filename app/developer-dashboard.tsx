@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
+import { StatusBadge } from '@/components/StatusBadge';
 import { DEVELOPER_PROJECTS } from '@/constants/developerData';
 
 type MetricCard = {
@@ -120,9 +121,7 @@ export default function DeveloperDashboardScreen() {
                   <Text style={styles.projectStatValue}>{project.views}</Text>
                 </View>
               </View>
-              <View style={[styles.statusPill, { backgroundColor: project.statusBg }]}>
-                <Text style={[styles.statusText, { color: project.statusColor }]}>{project.status}</Text>
-              </View>
+              <StatusBadge label={project.status} backgroundColor={project.statusBg} textColor={project.statusColor} />
             </Pressable>
           ))}
         </View>
@@ -246,18 +245,5 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     fontWeight: '500',
     color: '#3A3A3A',
-  },
-  statusPill: {
-    marginTop: 10,
-    alignSelf: 'flex-start',
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    minHeight: 26,
-    justifyContent: 'center',
-  },
-  statusText: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '500',
   },
 });

@@ -1,8 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '@/contexts/AuthContext';
+import { createProject } from '@/lib/api';
 import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -30,6 +33,7 @@ try {
 
 export default function DeveloperCreateProjectScreen() {
   const router = useRouter();
+  const { session } = useAuth();
   const MapView = MapModule?.default ?? MapModule?.MapView;
   const Marker = MapModule?.Marker;
   const UrlTile = MapModule?.UrlTile;
@@ -50,9 +54,11 @@ export default function DeveloperCreateProjectScreen() {
     null,
   );
 
+  const [submitting, setSubmitting] = useState(false);
+
   const canCreate = useMemo(
-    () => Boolean(projectName.trim() && city.trim() && address.trim() && description.trim()),
-    [projectName, city, address, description],
+    () => Boolean(projectName.trim() && city.trim() && description.trim()),
+    [projectName, city, description],
   );
 
   const pickPhoto = async () => {
@@ -82,6 +88,39 @@ export default function DeveloperCreateProjectScreen() {
   const coordinateLabel = pickedLocation
     ? `${pickedLocation.latitude.toFixed(6)}, ${pickedLocation.longitude.toFixed(6)}`
     : 'Координаты будут сохранены автоматически';
+
+  const onCreate = async () => {
+    if (!session?.token) {
+      Alert.alert('Ошибка', 'Нужно заново войти в аккаунт.');
+      return;
+    }
+
+    if (!canCreate || submitting) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const project = await createProject(
+        {
+          name: projectName.trim(),
+          city: city.trim(),
+          description: description.trim(),
+        },
+        session.token
+      );
+
+      Alert.alert('Готово', 'Проект создан.');
+      router.replace({
+        pathname: '/developer-project-view/[id]',
+        params: { id: String(project.id) },
+      });
+    } catch (error) {
+      Alert.alert('Ошибка', error instanceof Error ? error.message : 'Не удалось создать проект.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -208,8 +247,9 @@ export default function DeveloperCreateProjectScreen() {
 
         <Pressable
           style={[styles.submitButton, !canCreate && styles.submitButtonDisabled]}
-          disabled={!canCreate}>
-          <Text style={styles.submitText}>Создать проект</Text>
+          disabled={!canCreate || submitting}
+          onPress={onCreate}>
+          <Text style={styles.submitText}>{submitting ? 'Создаем...' : 'Создать проект'}</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

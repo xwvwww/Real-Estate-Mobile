@@ -4,6 +4,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import LogoutActionCard from '@/components/LogoutActionCard';
+import ProfileAvatarPicker from '@/components/ProfileAvatarPicker';
 import SettingsScreenHeader from '@/components/SettingsScreenHeader';
 import { updateCurrentUserProfile } from '@/lib/api';
 
@@ -42,6 +43,11 @@ export default function ProfileScreen() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('+7');
   const [saving, setSaving] = useState(false);
+  const avatarFallbackLabel = useMemo(() => {
+    const first = firstName.trim().charAt(0).toUpperCase();
+    const last = lastName.trim().charAt(0).toUpperCase();
+    return `${first}${last}`.trim() || 'U';
+  }, [firstName, lastName]);
 
   useEffect(() => {
     if (!session?.user) {
@@ -107,7 +113,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <SettingsScreenHeader />
+      <SettingsScreenHeader title="Мой профиль" />
 
       <ScrollView
         style={styles.scroll}
@@ -117,7 +123,7 @@ export default function ProfileScreen() {
         alwaysBounceVertical={false}
         overScrollMode="never">
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Личные данные</Text>
+          <ProfileAvatarPicker storageKey="profile-avatar-user" fallbackLabel={avatarFallbackLabel} />
 
           <View style={styles.fieldWrap}>
             <Text style={styles.label}>Имя</Text>
@@ -205,12 +211,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
     padding: 16,
-  },
-  cardTitle: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600',
-    color: '#3A3A3A',
   },
   fieldWrap: {
     marginTop: 16,

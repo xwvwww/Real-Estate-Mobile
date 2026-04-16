@@ -1,16 +1,80 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyState } from '@/components/EmptyState';
-import { StatusBadge } from '@/components/StatusBadge';
-import { getDeveloperProjectById } from '@/constants/developerData';
-import UserMapCard from '@/components/UserMapCard';
+import { useAuth } from '@/contexts/AuthContext';
+import { deleteProject, fetchProjectById, type ApiProject } from '@/lib/api';
 
 export default function DeveloperProjectViewScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const project = getDeveloperProjectById(id);
+  const { session } = useAuth();
+  const [project, setProject] = useState<ApiProject | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    if (!session?.token || !id) {
+      setProject(null);
+      setLoading(false);
+      setError('Проект не найден.');
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    fetchProjectById(id, session.token)
+      .then((nextProject) => {
+        if (!cancelled) {
+          setProject(nextProject);
+        }
+      })
+      .catch((nextError) => {
+        if (!cancelled) {
+          setError(nextError instanceof Error ? nextError.message : 'Не удалось загрузить проект.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, session?.token]);
+
+  const onDelete = () => {
+    if (!project || !session?.token || deleting) {
+      return;
+    }
+
+    Alert.alert('Удалить проект?', 'Связанные объекты останутся, но project_id будет очищен.', [
+      { text: 'Отмена', style: 'cancel' },
+      {
+        text: 'Удалить',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            setDeleting(true);
+            await deleteProject(project.id, session.token);
+            Alert.alert('Готово', 'Проект удален.');
+            router.replace('/developer-projects');
+          } catch (nextError) {
+            Alert.alert('Ошибка', nextError instanceof Error ? nextError.message : 'Не удалось удалить проект.');
+          } finally {
+            setDeleting(false);
+          }
+        },
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -22,60 +86,39 @@ export default function DeveloperProjectViewScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {project ? (
+        {loading ? (
+          <EmptyState icon="hourglass-outline" title="Загрузка проекта" description="Подождите немного" />
+        ) : project ? (
           <>
             <View style={styles.card}>
-              <Text style={styles.title}>{project.title}</Text>
-              <Text style={styles.location}>{project.location}</Text>
-              <StatusBadge label={project.status} backgroundColor={project.statusBg} textColor={project.statusColor} />
+              <Text style={styles.title}>{project.name}</Text>
+              <Text style={styles.location}>{project.city}</Text>
             </View>
 
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Показатели</Text>
-              <InfoRow label="Объектов" value={project.units} />
-              <InfoRow label="Просмотры" value={project.views} />
-              {project.createdAt ? <InfoRow label="Дата" value={project.createdAt.replace('Создан: ', '')} /> : null}
+              <InfoRow label="ID" value={String(project.id)} />
+              <InfoRow label="Город" value={project.city} />
+              <InfoRow label="Дата" value={formatProjectDate(project.created_at)} />
             </View>
 
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Описание</Text>
-              <Text style={styles.description}>{project.description}</Text>
+              <Text style={styles.description}>{project.description || 'Описание не указано'}</Text>
             </View>
 
-            <View style={styles.card}>
-              <Text style={styles.sectionTitle}>Локация проекта</Text>
-              <Text style={styles.locationText}>{project.location}</Text>
-              <View style={styles.mapWrap}>
-                <UserMapCard
-                  height={220}
-                  markers={[
-                    {
-                      id: project.id,
-                      lat: project.coordinates.latitude,
-                      lng: project.coordinates.longitude,
-                      price: project.units,
-                    },
-                  ]}
-                  selectedMarkerId={project.id}
-                  initialRegion={{
-                    latitude: project.coordinates.latitude,
-                    longitude: project.coordinates.longitude,
-                    latitudeDelta: 0.08,
-                    longitudeDelta: 0.08,
-                  }}
-                  cityTitle={project.title}
-                  citySubtitle={project.location}
-                  showListButton={false}
-                  showScopeButton={false}
-                />
-              </View>
-            </View>
+            <Pressable
+              style={[styles.deleteButton, deleting && styles.deleteButtonDisabled]}
+              onPress={onDelete}
+              disabled={deleting}>
+              <Text style={styles.deleteButtonText}>{deleting ? 'Удаляем...' : 'Удалить проект'}</Text>
+            </Pressable>
           </>
         ) : (
           <EmptyState
             icon="business-outline"
             title="Проект не найден"
-            description="Вернитесь к списку проектов и выберите существующий проект"
+            description={error || 'Вернитесь к списку проектов и выберите существующий проект'}
             actionLabel="К проектам"
             onAction={() => router.replace('/developer-projects')}
           />
@@ -83,6 +126,19 @@ export default function DeveloperProjectViewScreen() {
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+function formatProjectDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(date);
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -123,6 +179,20 @@ const styles = StyleSheet.create({
   infoLabel: { fontSize: 14, lineHeight: 21, color: '#939393' },
   infoValue: { fontSize: 14, lineHeight: 21, color: '#3A3A3A', fontWeight: '500' },
   description: { fontSize: 14, lineHeight: 22, color: '#5D5D5D' },
-  locationText: { fontSize: 14, lineHeight: 21, color: '#939393' },
-  mapWrap: { marginTop: 4 },
+  deleteButton: {
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#FFF1F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteButtonDisabled: {
+    opacity: 0.7,
+  },
+  deleteButtonText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#C84D4D',
+    fontWeight: '600',
+  },
 });

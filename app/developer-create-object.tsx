@@ -102,7 +102,10 @@ export default function DeveloperCreateObjectScreen() {
       }
 
       Alert.alert('Готово', 'Объект отправлен на модерацию.');
-      router.replace('/developer-objects');
+      router.replace({
+        pathname: '/developer-object-view/[id]',
+        params: { id: String(createdListing.id) },
+      });
     } catch (error) {
       Alert.alert('Ошибка', error instanceof Error ? error.message : 'Не удалось создать объект.');
     } finally {

@@ -107,7 +107,10 @@ export default function AgencyCreateListingStep4Screen() {
 
       resetListingDraft();
       Alert.alert('Готово', 'Объявление отправлено на модерацию.');
-      router.replace('/agency-listings');
+      router.replace({
+        pathname: '/agency-listing-view/[id]',
+        params: { id: String(createdListing.id) },
+      });
     } catch (error) {
       Alert.alert('Ошибка', error instanceof Error ? error.message : 'Не удалось отправить объявление.');
     } finally {

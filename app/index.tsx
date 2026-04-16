@@ -8,6 +8,7 @@ import Animated, {
   FadeIn,
   FadeOut,
   interpolate,
+  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -59,8 +60,8 @@ function LaunchIntro({
   logoProgress,
   wordmarkProgress,
 }: {
-  logoProgress: Animated.SharedValue<number>;
-  wordmarkProgress: Animated.SharedValue<number>;
+  logoProgress: SharedValue<number>;
+  wordmarkProgress: SharedValue<number>;
 }) {
   const logoStyle = useAnimatedStyle(() => ({
     opacity: interpolate(logoProgress.value, [0, 1], [0, 1]),

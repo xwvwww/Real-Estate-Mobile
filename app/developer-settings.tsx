@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
 import LogoutActionCard from '@/components/LogoutActionCard';
+import ProfileAvatarPicker from '@/components/ProfileAvatarPicker';
 import SettingsScreenHeader from '@/components/SettingsScreenHeader';
 
 type Employee = {
@@ -59,6 +60,10 @@ export default function DeveloperSettingsScreen() {
         overScrollMode="never">
         <View style={styles.companyCard}>
           <Text style={styles.sectionHeading}>Настройки компании</Text>
+          <ProfileAvatarPicker
+            storageKey="profile-avatar-developer"
+            fallbackLabel={companyName.trim().charAt(0).toUpperCase() || 'D'}
+          />
 
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>Название компании</Text>

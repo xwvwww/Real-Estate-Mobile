@@ -39,6 +39,16 @@ export type ChangePasswordPayload = {
   new_password_confirmation: string;
 };
 
+export type RequestPasswordResetPayload = {
+  email: string;
+};
+
+export type ConfirmPasswordResetPayload = {
+  token: string;
+  password: string;
+  password_confirmation: string;
+};
+
 export type ApiListingMedia = {
   id: number;
   listing_id: number;
@@ -134,6 +144,11 @@ export type CompanyRegistrationPayload = {
   password: string;
   password_confirmation: string;
   invite_token?: string;
+  document: {
+    uri: string;
+    name: string;
+    type?: string;
+  };
 };
 
 export type ListingFilters = {
@@ -254,11 +269,31 @@ export type ApiDashboardOverview = {
   recent_applications: ApiDashboardApplicationSummary[];
 };
 
+export type ApiProject = {
+  id: number;
+  company_id: number;
+  name: string;
+  city: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type ListingUploadFile = {
   uri: string;
   name: string;
   type?: string;
 };
+
+export type CreateProjectPayload = {
+  name: string;
+  city: string;
+  description?: string;
+};
+
+export type UpdateProjectPayload = Partial<CreateProjectPayload>;
+
+export type UpdateListingPayload = Partial<CreateListingPayload>;
 
 const DEFAULT_API_URL = 'http://localhost:8080/v1';
 
@@ -310,7 +345,13 @@ export async function requestJson<T>(path: string, init: RequestInit = {}): Prom
     return undefined as T;
   }
 
-  const payload = (await response.json()) as T | ApiResponseEnvelope<T>;
+  const text = await response.text();
+
+  if (!text) {
+    return undefined as T;
+  }
+
+  const payload = JSON.parse(text) as T | ApiResponseEnvelope<T>;
 
   if (payload && typeof payload === 'object' && 'data' in payload) {
     return (payload as ApiResponseEnvelope<T>).data as T;
@@ -355,6 +396,26 @@ export async function changeCurrentUserPassword(payload: ChangePasswordPayload, 
   });
 }
 
+export async function requestPasswordReset(payload: RequestPasswordResetPayload) {
+  return requestJson<{ message?: string } | undefined>('/authentication/password-reset/request', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function confirmPasswordReset(payload: ConfirmPasswordResetPayload) {
+  return requestNoContent('/authentication/password-reset/confirm', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function registerUser(payload: UserRegistrationPayload) {
   return requestJson<ApiRegistrationResponse>('/authentication/user', {
     method: 'POST',
@@ -366,12 +427,32 @@ export async function registerUser(payload: UserRegistrationPayload) {
 }
 
 export async function registerCompany(payload: CompanyRegistrationPayload) {
+  const formData = new FormData();
+  formData.append('company_name', payload.company_name);
+  formData.append('registration_number', payload.registration_number);
+  formData.append('city', payload.city);
+  formData.append('company_email', payload.company_email);
+  formData.append('company_phone', payload.company_phone);
+  formData.append('company_type', payload.company_type);
+  formData.append('first_name', payload.first_name);
+  formData.append('last_name', payload.last_name);
+  formData.append('job_title', payload.job_title);
+  formData.append('password', payload.password);
+  formData.append('password_confirmation', payload.password_confirmation);
+
+  if (payload.invite_token) {
+    formData.append('invite_token', payload.invite_token);
+  }
+
+  formData.append('document', {
+    uri: payload.document.uri,
+    name: payload.document.name,
+    type: payload.document.type || 'application/pdf',
+  } as unknown as Blob);
+
   return requestJson<ApiRegistrationResponse>('/authentication/company', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
+    body: formData,
   });
 }
 
@@ -441,6 +522,30 @@ export async function createListing(payload: CreateListingPayload, token: string
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(payload),
+  });
+}
+
+export async function updateListing(
+  listingId: string | number,
+  payload: UpdateListingPayload,
+  token: string
+) {
+  return requestJson<ApiListing>(`/listings/${encodeURIComponent(String(listingId))}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteListing(listingId: string | number, token: string) {
+  return requestNoContent(`/listings/${encodeURIComponent(String(listingId))}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
 }
 
@@ -630,4 +735,75 @@ export async function uploadListingMedia(
   }
 
   return payload as ApiListingMedia;
+}
+
+export async function deleteListingMedia(
+  listingId: string | number,
+  mediaId: string | number,
+  token: string
+) {
+  return requestNoContent(
+    `/listings/${encodeURIComponent(String(listingId))}/media/${encodeURIComponent(String(mediaId))}`,
+    {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+}
+
+export async function fetchProjects(token: string) {
+  const payload = await requestJson<ApiProject[] | null>('/projects', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return Array.isArray(payload) ? payload : [];
+}
+
+export async function fetchProjectById(projectId: string | number, token: string) {
+  return requestJson<ApiProject>(`/projects/${encodeURIComponent(String(projectId))}`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+}
+
+export async function createProject(payload: CreateProjectPayload, token: string) {
+  return requestJson<ApiProject>('/projects', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateProject(
+  projectId: string | number,
+  payload: UpdateProjectPayload,
+  token: string
+) {
+  return requestJson<ApiProject>(`/projects/${encodeURIComponent(String(projectId))}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteProject(projectId: string | number, token: string) {
+  return requestNoContent(`/projects/${encodeURIComponent(String(projectId))}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 }

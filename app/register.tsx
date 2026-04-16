@@ -47,6 +47,12 @@ type CompanyForm = {
   passwordConfirmation: string;
 };
 
+type CompanyDocumentAsset = {
+  uri: string;
+  name: string;
+  mimeType?: string | null;
+};
+
 type RoleItemProps = {
   title: string;
   description: string;
@@ -167,6 +173,7 @@ export default function RegisterScreen() {
   const [companyPhoneTouched, setCompanyPhoneTouched] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [agencyDocName, setAgencyDocName] = useState<string | null>(null);
+  const [agencyDocument, setAgencyDocument] = useState<CompanyDocumentAsset | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userForm, setUserForm] = useState<UserForm>({
     firstName: '',
@@ -222,11 +229,18 @@ export default function RegisterScreen() {
 
   const pickAgencyDocument = async () => {
     const result = await DocumentPicker.getDocumentAsync({
-      type: '*/*',
+      type: ['application/pdf'],
       copyToCacheDirectory: true,
     });
     if (result.canceled) return;
-    setAgencyDocName(result.assets?.[0]?.name ?? null);
+    const asset = result.assets?.[0];
+    if (!asset?.uri || !asset?.name) return;
+    setAgencyDocName(asset.name);
+    setAgencyDocument({
+      uri: asset.uri,
+      name: asset.name,
+      mimeType: asset.mimeType,
+    });
   };
 
   const submitUserRegistration = async () => {
@@ -297,6 +311,11 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (!agencyDocument) {
+      Alert.alert('Нужен документ', 'Прикрепите PDF-документ компании для регистрации.');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -312,6 +331,11 @@ export default function RegisterScreen() {
         job_title: companyForm.jobTitle.trim(),
         password: companyForm.password,
         password_confirmation: companyForm.passwordConfirmation,
+        document: {
+          uri: agencyDocument.uri,
+          name: agencyDocument.name,
+          type: agencyDocument.mimeType || 'application/pdf',
+        },
       });
 
       router.replace({
@@ -354,7 +378,8 @@ export default function RegisterScreen() {
     companyForm.lastName.trim().length > 0 &&
     companyForm.jobTitle.trim().length > 0 &&
     companyForm.password.trim().length > 0 &&
-    companyForm.passwordConfirmation.trim().length > 0;
+    companyForm.passwordConfirmation.trim().length > 0 &&
+    Boolean(agencyDocument);
 
   useEffect(() => {
     transition.setValue(0);

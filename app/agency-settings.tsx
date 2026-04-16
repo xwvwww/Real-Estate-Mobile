@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AgencyBottomBar } from '@/components/AgencyBottomBar';
+import ProfileAvatarPicker from '@/components/ProfileAvatarPicker';
 import { useAuth } from '@/contexts/AuthContext';
 import LogoutActionCard from '@/components/LogoutActionCard';
 import SettingsScreenHeader from '@/components/SettingsScreenHeader';
@@ -53,6 +54,10 @@ export default function AgencySettingsScreen() {
         overScrollMode="never">
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Настройки компании</Text>
+          <ProfileAvatarPicker
+            storageKey="profile-avatar-agency"
+            fallbackLabel={agencyName.trim().charAt(0).toUpperCase() || 'A'}
+          />
 
           <View style={styles.fieldWrap}>
             <Text style={styles.label}>Название агентства</Text>

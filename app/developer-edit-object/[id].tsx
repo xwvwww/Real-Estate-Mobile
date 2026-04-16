@@ -32,7 +32,7 @@ try {
   DocumentPicker = null;
 }
 
-export default function AgencyEditListingScreen() {
+export default function DeveloperEditObjectScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { session } = useAuth();
@@ -53,7 +53,7 @@ export default function AgencyEditListingScreen() {
   useEffect(() => {
     if (!isBackendListing || !id || !session?.token) {
       setLoading(false);
-      setError('Редактирование доступно только для backend-объявлений.');
+      setError('Редактирование доступно только для backend-объектов.');
       return;
     }
 
@@ -76,7 +76,7 @@ export default function AgencyEditListingScreen() {
       })
       .catch((nextError) => {
         if (!cancelled) {
-          setError(nextError instanceof Error ? nextError.message : 'Не удалось загрузить объявление.');
+          setError(nextError instanceof Error ? nextError.message : 'Не удалось загрузить объект.');
         }
       })
       .finally(() => {
@@ -133,13 +133,13 @@ export default function AgencyEditListingScreen() {
       );
 
       setListing(nextListing);
-      Alert.alert('Готово', 'Объявление обновлено.');
+      Alert.alert('Готово', 'Объект обновлен.');
       router.replace({
-        pathname: '/agency-listing-view/[id]',
+        pathname: '/developer-object-view/[id]',
         params: { id: String(nextListing.id) },
       });
     } catch (nextError) {
-      Alert.alert('Ошибка', nextError instanceof Error ? nextError.message : 'Не удалось сохранить объявление.');
+      Alert.alert('Ошибка', nextError instanceof Error ? nextError.message : 'Не удалось сохранить объект.');
     } finally {
       setSaving(false);
     }
@@ -214,7 +214,7 @@ export default function AgencyEditListingScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {loading ? (
-          <EmptyState icon="hourglass-outline" title="Загрузка объявления" description="Подождите немного" />
+          <EmptyState icon="hourglass-outline" title="Загрузка объекта" description="Подождите немного" />
         ) : listing ? (
           <>
             <View style={styles.card}>
@@ -281,7 +281,7 @@ export default function AgencyEditListingScreen() {
           <EmptyState
             icon="create-outline"
             title="Редактирование недоступно"
-            description={error || 'Откройте реальное backend-объявление и попробуйте снова.'}
+            description={error || 'Откройте реальный backend-объект и попробуйте снова.'}
             actionLabel="Назад"
             onAction={() => router.back()}
           />

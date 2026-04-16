@@ -20,6 +20,7 @@ export default function RootLayout() {
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false }} />
           <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
+          <Stack.Screen name="reset-password" options={{ headerShown: false }} />
           <Stack.Screen name="register" options={{ headerShown: false }} />
           <Stack.Screen name="confirm/[token]" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -46,6 +47,7 @@ export default function RootLayout() {
           <Stack.Screen name="developer-project-view/[id]" options={{ headerShown: false, animation: 'none' }} />
           <Stack.Screen name="developer-create-project" options={{ headerShown: false, animation: 'none' }} />
           <Stack.Screen name="developer-create-object" options={{ headerShown: false, animation: 'none' }} />
+          <Stack.Screen name="developer-edit-object/[id]" options={{ headerShown: false, animation: 'none' }} />
           <Stack.Screen name="developer-objects" options={{ headerShown: false, animation: 'none' }} />
           <Stack.Screen name="developer-object-view/[id]" options={{ headerShown: false, animation: 'none' }} />
           <Stack.Screen name="developer-requests" options={{ headerShown: false, animation: 'none' }} />

@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     elevation: 2,
   },
-  recentImage: { width: 100, height: 100, borderRadius: 0 },
+  recentImage: { width: 100, height: 124, borderRadius: 0 },
   recentBody: { flex: 1, marginLeft: 12, justifyContent: 'space-between', paddingVertical: 12, paddingRight: 12 },
   recentTitle: { fontSize: 15, lineHeight: 23, color: '#3A3A3A', fontWeight: '600' },
   recentCity: { fontSize: 13, lineHeight: 20, color: '#939393' },

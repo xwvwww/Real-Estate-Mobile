@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppDropdown from '@/components/AppDropdown';
+import { fetchNearbyPlaces, reverseGeocode, type NearbyPlace } from '@/lib/geo';
 import { updateListingDraft, useListingDraft } from '@/stores/listingDraftStore';
 
 type MapRegion = {
@@ -48,6 +49,10 @@ export default function AgencyCreateListingStep2Screen() {
       ? { latitude: draft.latitude, longitude: draft.longitude }
       : null,
   );
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
+  const [nearbyError, setNearbyError] = useState<string | null>(null);
 
   const onZoom = (dir: 'in' | 'out') => {
     const nextDelta =
@@ -75,6 +80,45 @@ export default function AgencyCreateListingStep2Screen() {
       longitude: nextCity.longitude,
     });
     updateListingDraft({ city: nextCity.label, latitude: nextCity.latitude, longitude: nextCity.longitude });
+  };
+
+  const onPickLocation = async (coordinate: { latitude: number; longitude: number }) => {
+    setPickedLocation(coordinate);
+    setRegion((prev) => ({
+      ...prev,
+      latitude: coordinate.latitude,
+      longitude: coordinate.longitude,
+    }));
+    updateListingDraft({ latitude: coordinate.latitude, longitude: coordinate.longitude });
+
+    setAddressLoading(true);
+    setNearbyLoading(true);
+    setNearbyError(null);
+
+    try {
+      const result = await reverseGeocode(coordinate.latitude, coordinate.longitude);
+      updateListingDraft({
+        address: result.address,
+        city: result.city || draft.city,
+      });
+    } catch {
+      updateListingDraft({
+        address: `${coordinate.latitude.toFixed(6)}, ${coordinate.longitude.toFixed(6)}`,
+      });
+    } finally {
+      setAddressLoading(false);
+    }
+
+    try {
+      const places = await fetchNearbyPlaces(coordinate.latitude, coordinate.longitude);
+      setNearbyPlaces(places);
+      setNearbyError(null);
+    } catch {
+      setNearbyPlaces([]);
+      setNearbyError('Не удалось загрузить объекты рядом');
+    } finally {
+      setNearbyLoading(false);
+    }
   };
 
   return (
@@ -138,6 +182,11 @@ export default function AgencyCreateListingStep2Screen() {
               placeholder="Например: ул. Абая 150"
               placeholderTextColor="#939393"
             />
+            <Text style={styles.fieldHint}>
+              {addressLoading
+                ? 'Определяем адрес по выбранной точке...'
+                : 'Адрес можно поправить вручную, точка на карте от этого не изменится.'}
+            </Text>
           </View>
 
           <View style={styles.mapPlaceholder}>
@@ -149,8 +198,7 @@ export default function AgencyCreateListingStep2Screen() {
                   onRegionChangeComplete={setRegion}
                   onPress={(event: any) => {
                     const coordinate = event.nativeEvent.coordinate;
-                    setPickedLocation(coordinate);
-                    updateListingDraft({ latitude: coordinate.latitude, longitude: coordinate.longitude });
+                    void onPickLocation(coordinate);
                   }}>
                   <UrlTile urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maximumZ={19} />
                   {pickedLocation ? <Marker coordinate={pickedLocation} /> : null}
@@ -177,6 +225,42 @@ export default function AgencyCreateListingStep2Screen() {
             </View>
           </View>
           <Text style={styles.mapHint}>Нажмите на карту, чтобы указать местоположение</Text>
+
+          {pickedLocation ? (
+            <View style={styles.nearbySection}>
+              <View style={styles.nearbyHeader}>
+                <View>
+                  <Text style={styles.nearbyTitle}>Рядом с объектом</Text>
+                  <Text style={styles.nearbySubtitle}>В радиусе до 900 м</Text>
+                </View>
+                {nearbyLoading ? <ActivityIndicator size="small" color="#70A0FF" /> : null}
+              </View>
+
+              {nearbyError ? <Text style={styles.nearbyError}>{nearbyError}</Text> : null}
+
+              {!nearbyLoading && !nearbyError && nearbyPlaces.length === 0 ? (
+                <Text style={styles.nearbyEmpty}>Поблизости пока ничего не найдено.</Text>
+              ) : null}
+
+              {nearbyPlaces.length > 0 ? (
+                <View style={styles.nearbyGrid}>
+                  {nearbyPlaces.map((place) => (
+                    <View key={place.id} style={styles.nearbyChip}>
+                      <Ionicons name="location-outline" size={15} color="#70A0FF" />
+                      <View style={styles.nearbyChipTextWrap}>
+                        <Text style={styles.nearbyChipTitle} numberOfLines={1}>
+                          {place.name}
+                        </Text>
+                        <Text style={styles.nearbyChipSubtitle}>
+                          {place.type} · {place.distanceMeters} м
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
 
           <View style={styles.actionsRow}>
             <Pressable style={styles.backAction} onPress={() => router.back()}>
@@ -296,6 +380,11 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: '#3A3A3A',
   },
+  fieldHint: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#939393',
+  },
   mapPlaceholder: {
     marginTop: 16,
     height: 300,
@@ -358,6 +447,71 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 14,
     lineHeight: 21,
+    color: '#939393',
+  },
+  nearbySection: {
+    marginTop: 16,
+    borderRadius: 14,
+    backgroundColor: '#F8F8F8',
+    padding: 14,
+  },
+  nearbyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  nearbyTitle: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#3A3A3A',
+    fontWeight: '600',
+  },
+  nearbySubtitle: {
+    marginTop: 2,
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#939393',
+  },
+  nearbyError: {
+    marginTop: 12,
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#D9534F',
+  },
+  nearbyEmpty: {
+    marginTop: 12,
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#737373',
+  },
+  nearbyGrid: {
+    marginTop: 12,
+    gap: 8,
+  },
+  nearbyChip: {
+    minHeight: 46,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  nearbyChipTextWrap: {
+    flex: 1,
+  },
+  nearbyChipTitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#3A3A3A',
+    fontWeight: '500',
+  },
+  nearbyChipSubtitle: {
+    marginTop: 1,
+    fontSize: 12,
+    lineHeight: 17,
     color: '#939393',
   },
   actionsRow: {

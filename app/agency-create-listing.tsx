@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { updateListingDraft, useListingDraft } from '@/stores/listingDraftStore';
+import { formatPriceInput } from '@/lib/price';
 
 const PROPERTY_TYPES = ['Квартира', 'Дом', 'Коммерческая', 'Студия'] as const;
 const DEAL_TYPES = ['Продажа', 'Аренда'] as const;
@@ -82,14 +83,17 @@ export default function AgencyCreateListingScreen() {
 
           <View style={styles.fieldWrap}>
             <Text style={styles.fieldLabel}>Цена*</Text>
-            <TextInput
-              style={styles.input}
-              value={draft.price}
-              onChangeText={(value) => updateListingDraft({ price: value })}
-              keyboardType="number-pad"
-              placeholder="Например: 12 500 000"
-              placeholderTextColor="#939393"
-            />
+            <View style={styles.priceInputWrap}>
+              <TextInput
+                style={[styles.input, styles.priceInput]}
+                value={draft.price}
+                onChangeText={(value) => updateListingDraft({ price: formatPriceInput(value) })}
+                keyboardType="number-pad"
+                placeholder="Например: 12 500 000"
+                placeholderTextColor="#939393"
+              />
+              <Text style={styles.priceCurrency}>₸</Text>
+            </View>
           </View>
 
           <Pressable style={styles.nextButton} onPress={() => router.push('/agency-create-listing-step2')}>
@@ -112,7 +116,6 @@ export default function AgencyCreateListingScreen() {
                   key={item}
                   style={styles.modalItem}
                   onPress={() => {
-                    setPropertyType(item);
                     setPropertyTypeModalOpen(false);
                     updateListingDraft({ propertyType: item });
                   }}>
@@ -134,7 +137,6 @@ export default function AgencyCreateListingScreen() {
                   key={item}
                   style={styles.modalItem}
                   onPress={() => {
-                    setDealType(item);
                     setDealTypeModalOpen(false);
                     updateListingDraft({ dealType: item });
                   }}>
@@ -248,6 +250,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     color: '#3A3A3A',
+  },
+  priceInputWrap: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  priceInput: {
+    paddingRight: 44,
+  },
+  priceCurrency: {
+    position: 'absolute',
+    right: 16,
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#737373',
+    fontWeight: '500',
   },
   select: {
     height: 48,

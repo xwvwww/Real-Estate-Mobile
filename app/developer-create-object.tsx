@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { createListing, uploadListingMedia, type ListingUploadFile } from '@/lib/api';
+import { formatPriceInput, parsePriceInput } from '@/lib/price';
 import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -66,7 +67,7 @@ export default function DeveloperCreateObjectScreen() {
       return;
     }
 
-    const parsedPrice = Number(price.replace(/\s/g, ''));
+    const parsedPrice = parsePriceInput(price);
     const parsedRooms = Number(rooms);
     const parsedArea = Number(area);
     const parsedFloor = Number(floor);
@@ -165,14 +166,17 @@ export default function DeveloperCreateObjectScreen() {
 
           <View style={styles.fieldWrap}>
             <Text style={styles.fieldLabel}>Цена*</Text>
-            <TextInput
-              style={styles.input}
-              value={price}
-              onChangeText={setPrice}
-              placeholder="Например: 18 500 000"
-              placeholderTextColor="#939393"
-              keyboardType="numeric"
-            />
+            <View style={styles.priceInputWrap}>
+              <TextInput
+                style={[styles.input, styles.priceInput]}
+                value={price}
+                onChangeText={(value) => setPrice(formatPriceInput(value))}
+                placeholder="Например: 18 500 000"
+                placeholderTextColor="#939393"
+                keyboardType="numeric"
+              />
+              <Text style={styles.priceCurrency}>₸</Text>
+            </View>
           </View>
         </View>
 
@@ -349,6 +353,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 16,
     color: '#3A3A3A',
+  },
+  priceInputWrap: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  priceInput: {
+    paddingRight: 44,
+  },
+  priceCurrency: {
+    position: 'absolute',
+    right: 16,
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#737373',
+    fontWeight: '500',
   },
   selectButton: {
     height: 48,

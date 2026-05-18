@@ -23,6 +23,7 @@ import {
   updateListing,
   uploadListingMedia,
 } from '@/lib/api';
+import { formatPriceInput, parsePriceInput } from '@/lib/price';
 
 let DocumentPicker: any = null;
 try {
@@ -69,7 +70,7 @@ export default function DeveloperEditObjectScreen() {
 
         setListing(nextListing);
         setTitle(nextListing.title);
-        setPrice(String(nextListing.price));
+        setPrice(formatPriceInput(String(nextListing.price)));
         setCity(nextListing.city);
         setAddress(nextListing.address ?? '');
         setDescription(nextListing.description ?? '');
@@ -100,8 +101,8 @@ export default function DeveloperEditObjectScreen() {
       city.trim() &&
       address.trim() &&
       description.trim() &&
-      Number.isFinite(Number(price.replace(/\s/g, ''))) &&
-      Number(price.replace(/\s/g, '')) > 0
+      Number.isFinite(parsePriceInput(price)) &&
+      parsePriceInput(price) > 0
   );
 
   const reloadListing = async () => {
@@ -124,7 +125,7 @@ export default function DeveloperEditObjectScreen() {
         id,
         {
           title: title.trim(),
-          price: Number(price.replace(/\s/g, '')),
+          price: parsePriceInput(price),
           city: city.trim(),
           address: address.trim(),
           description: description.trim(),
@@ -222,8 +223,9 @@ export default function DeveloperEditObjectScreen() {
               <Field
                 label="Цена"
                 value={price}
-                onChangeText={setPrice}
+                onChangeText={(value) => setPrice(formatPriceInput(value))}
                 keyboardType="numeric"
+                isPrice
               />
               <Field label="Город" value={city} onChangeText={setCity} />
               <Field label="Адрес" value={address} onChangeText={setAddress} />
@@ -296,22 +298,27 @@ function Field({
   value,
   onChangeText,
   keyboardType,
+  isPrice,
 }: {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
   keyboardType?: 'default' | 'numeric';
+  isPrice?: boolean;
 }) {
   return (
     <View style={styles.fieldWrap}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        style={styles.input}
-        placeholderTextColor="#939393"
-        keyboardType={keyboardType}
-      />
+      <View style={isPrice ? styles.priceInputWrap : undefined}>
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          style={[styles.input, isPrice && styles.priceInput]}
+          placeholderTextColor="#939393"
+          keyboardType={keyboardType}
+        />
+        {isPrice ? <Text style={styles.priceCurrency}>₸</Text> : null}
+      </View>
     </View>
   );
 }
@@ -346,6 +353,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 16,
     color: '#3A3A3A',
+  },
+  priceInputWrap: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  priceInput: {
+    paddingRight: 44,
+  },
+  priceCurrency: {
+    position: 'absolute',
+    right: 16,
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#737373',
+    fontWeight: '500',
   },
   area: {
     minHeight: 120,

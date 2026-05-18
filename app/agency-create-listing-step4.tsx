@@ -20,7 +20,34 @@ export default function AgencyCreateListingStep4Screen() {
   const { session } = useAuth();
   const draft = useListingDraft();
   const [submitting, setSubmitting] = useState(false);
-  const [pickedPhotos, setPickedPhotos] = useState<ListingUploadFile[]>([]);
+
+  const pickedPhotos = draft.photos;
+
+  const persistDraftPhotos = (photos: ListingUploadFile[]) => {
+    updateListingDraft({
+      photos,
+      photoNames: photos.map((photo) => photo.name),
+    });
+  };
+
+  const saveDraftLocally = () => {
+    Alert.alert('Черновик сохранен', 'Объявление сохранено локально на этом устройстве. Вы сможете вернуться к нему позже.');
+    router.replace('/agency-dashboard');
+  };
+
+  const getUnsupportedPhoto = (photo: ListingUploadFile) => {
+    const type = photo.type?.toLowerCase() || '';
+    const name = photo.name.toLowerCase();
+    const isSupportedType =
+      type === 'image/jpeg' ||
+      type === 'image/jpg' ||
+      type === 'image/png' ||
+      type === 'image/webp';
+    const hasSupportedExtension =
+      name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png') || name.endsWith('.webp');
+
+    return isSupportedType || hasSupportedExtension ? null : photo;
+  };
 
   const onPickPhoto = async () => {
     try {
@@ -48,8 +75,7 @@ export default function AgencyCreateListingStep4Screen() {
       if (picked.length > 0) {
         const validPicked = picked.filter((photo) => Boolean(photo.uri));
         if (validPicked.length > 0) {
-          setPickedPhotos((prev) => [...prev, ...validPicked]);
-          updateListingDraft({ photoNames: [...draft.photoNames, ...validPicked.map((photo) => photo.name)] });
+          persistDraftPhotos([...pickedPhotos, ...validPicked]);
         }
       }
     } catch {
@@ -79,6 +105,15 @@ export default function AgencyCreateListingStep4Screen() {
       return;
     }
 
+    const unsupportedPhoto = pickedPhotos.find(getUnsupportedPhoto);
+    if (unsupportedPhoto) {
+      Alert.alert(
+        'Неподдерживаемый формат',
+        `Файл "${unsupportedPhoto.name}" не подходит. Загрузите изображение в формате JPG, PNG или WEBP.`
+      );
+      return;
+    }
+
     try {
       setSubmitting(true);
 
@@ -101,12 +136,24 @@ export default function AgencyCreateListingStep4Screen() {
         session.token
       );
 
+      const uploadErrors: string[] = [];
       for (const photo of pickedPhotos) {
-        await uploadListingMedia(createdListing.id, photo, session.token);
+        try {
+          await uploadListingMedia(createdListing.id, photo, session.token);
+        } catch (error) {
+          uploadErrors.push(`${photo.name}: ${error instanceof Error ? error.message : 'не удалось загрузить файл'}`);
+        }
       }
 
       resetListingDraft();
-      Alert.alert('Готово', 'Объявление отправлено на модерацию.');
+      if (uploadErrors.length > 0) {
+        Alert.alert(
+          'Объявление создано',
+          `Объявление отправлено на модерацию, но часть фото не загрузилась.\n\n${uploadErrors.join('\n')}`
+        );
+      } else {
+        Alert.alert('Готово', 'Объявление отправлено на модерацию.');
+      }
       router.replace({
         pathname: '/agency-listing-view/[id]',
         params: { id: String(createdListing.id) },
@@ -127,7 +174,7 @@ export default function AgencyCreateListingStep4Screen() {
 
         <Text style={styles.topHeaderTitle}>Создание объявления</Text>
 
-        <Pressable style={styles.saveButton}>
+        <Pressable style={styles.saveButton} onPress={saveDraftLocally} disabled={submitting}>
           <Text style={styles.saveButtonText}>Сохранить</Text>
         </Pressable>
       </View>
@@ -188,7 +235,7 @@ export default function AgencyCreateListingStep4Screen() {
               <Text style={styles.backActionText}>Назад</Text>
             </Pressable>
 
-            <Pressable style={styles.draftAction}>
+            <Pressable style={styles.draftAction} onPress={saveDraftLocally} disabled={submitting}>
               <Text style={styles.draftActionText}>Сохранить как черновик</Text>
             </Pressable>
           </View>

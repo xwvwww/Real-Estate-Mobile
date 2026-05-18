@@ -21,6 +21,7 @@ import UserMapCard, { type MapRegion, type UserMapMarker } from '@/components/Us
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchListings } from '@/lib/api';
 import { mapApiListingToCatalogListing, mapUserListingToCatalogListing, type CatalogListing } from '@/lib/listings';
+import { formatPriceInput } from '@/lib/price';
 import { USER_LISTINGS } from '@/constants/userListings';
 import { toggleFavorite, useIsFavorite } from '@/stores/favoritesStore';
 
@@ -462,22 +463,28 @@ export default function UserCatalogScreen() {
 
               <Text style={styles.filterLabel}>Цена</Text>
               <View style={styles.priceRow}>
-                <TextInput
-                  value={priceFrom}
-                  onChangeText={setPriceFrom}
-                  keyboardType="number-pad"
-                  placeholder="От"
-                  placeholderTextColor="#939393"
-                  style={[styles.filterInput, styles.priceInput]}
-                />
-                <TextInput
-                  value={priceTo}
-                  onChangeText={setPriceTo}
-                  keyboardType="number-pad"
-                  placeholder="До"
-                  placeholderTextColor="#939393"
-                  style={[styles.filterInput, styles.priceInput]}
-                />
+                <View style={styles.priceFieldWrap}>
+                  <TextInput
+                    value={priceFrom}
+                    onChangeText={(value) => setPriceFrom(formatPriceInput(value))}
+                    keyboardType="number-pad"
+                    placeholder="От"
+                    placeholderTextColor="#939393"
+                    style={[styles.filterInput, styles.priceInput]}
+                  />
+                  <Text style={styles.priceCurrency}>₸</Text>
+                </View>
+                <View style={styles.priceFieldWrap}>
+                  <TextInput
+                    value={priceTo}
+                    onChangeText={(value) => setPriceTo(formatPriceInput(value))}
+                    keyboardType="number-pad"
+                    placeholder="До"
+                    placeholderTextColor="#939393"
+                    style={[styles.filterInput, styles.priceInput]}
+                  />
+                  <Text style={styles.priceCurrency}>₸</Text>
+                </View>
               </View>
 
               <Pressable style={styles.clearArea} onPress={() => setAreaFilterRegion(null)}>
@@ -660,7 +667,20 @@ const styles = StyleSheet.create({
   typeChipText: { fontSize: 13, lineHeight: 20, color: '#3A3A3A', fontWeight: '500' },
   typeChipTextActive: { color: '#FFFFFF' },
   priceRow: { flexDirection: 'row', gap: 10 },
-  priceInput: { flex: 1 },
+  priceFieldWrap: {
+    flex: 1,
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  priceInput: { flex: 1, paddingRight: 34 },
+  priceCurrency: {
+    position: 'absolute',
+    right: 12,
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#737373',
+    fontWeight: '500',
+  },
   clearArea: {
     marginTop: 2,
     height: 40,

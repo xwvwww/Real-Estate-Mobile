@@ -106,10 +106,6 @@ export default function ForgotPasswordScreen() {
                 {submitting ? 'Отправляем...' : 'Отправить ссылку'}
               </Text>
             </Pressable>
-
-            <Pressable style={styles.secondaryButton} onPress={() => router.push('/reset-password')}>
-              <Text style={styles.secondaryButtonText}>У меня уже есть токен</Text>
-            </Pressable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -206,19 +202,6 @@ const styles = StyleSheet.create({
   },
   primaryButtonTextDisabled: {
     color: '#5E79B8',
-  },
-  secondaryButton: {
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#E8F0FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 12,
-  },
-  secondaryButtonText: {
-    color: '#5A80D6',
-    fontSize: 16,
-    fontWeight: '500',
   },
 });
 

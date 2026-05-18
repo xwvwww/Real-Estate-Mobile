@@ -9,37 +9,39 @@ import { useAuth } from '@/contexts/AuthContext';
 import LogoutActionCard from '@/components/LogoutActionCard';
 import SettingsScreenHeader from '@/components/SettingsScreenHeader';
 
-type Employee = {
-  id: string;
-  initials: string;
-  name: string;
-  email: string;
-  role: string;
-};
+function formatPhoneInput(value: string) {
+  const digits = value.replace(/\D/g, '');
+  const normalized = digits.startsWith('7')
+    ? digits.slice(0, 11)
+    : digits.startsWith('8')
+      ? `7${digits.slice(1, 11)}`
+      : `7${digits}`.slice(0, 11);
 
-const EMPLOYEES: Employee[] = [
-  {
-    id: '1',
-    initials: 'А',
-    name: 'Анна Смирнова',
-    email: 'anna@agency.kz',
-    role: 'Менеджер',
-  },
-  {
-    id: '2',
-    initials: 'П',
-    name: 'Петр Козлов',
-    email: 'petr@agency.kz',
-    role: 'Агент',
-  },
-];
+  const country = normalized.slice(0, 1);
+  const part1 = normalized.slice(1, 4);
+  const part2 = normalized.slice(4, 7);
+  const part3 = normalized.slice(7, 9);
+  const part4 = normalized.slice(9, 11);
+
+  let result = country ? `+${country}` : '+7';
+  if (part1) result += ` ${part1}`;
+  if (part2) result += ` ${part2}`;
+  if (part3) result += ` ${part3}`;
+  if (part4) result += ` ${part4}`;
+
+  return result.trim();
+}
+
+function isPhoneValid(value: string) {
+  return value.replace(/\D/g, '').length === 11;
+}
 
 export default function AgencySettingsScreen() {
   const router = useRouter();
   const { signOut } = useAuth();
   const [agencyName, setAgencyName] = useState('Агентство недвижимости Гарант');
-  const [email, setEmail] = useState('info@garant.kz');
-  const [phone, setPhone] = useState('+7 (727) 123-45-67');
+  const [email] = useState('info@garant.kz');
+  const [phone, setPhone] = useState(formatPhoneInput('+7 (727) 123-45-67'));
   const [description, setDescription] = useState('');
 
   return (
@@ -73,9 +75,10 @@ export default function AgencySettingsScreen() {
           <View style={styles.fieldWrap}>
             <Text style={styles.label}>Email</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, styles.readOnlyInput]}
               value={email}
-              onChangeText={setEmail}
+              editable={false}
+              selectTextOnFocus={false}
               keyboardType="email-address"
               placeholder="Email"
               placeholderTextColor="#939393"
@@ -87,11 +90,14 @@ export default function AgencySettingsScreen() {
             <TextInput
               style={styles.input}
               value={phone}
-              onChangeText={setPhone}
+              onChangeText={(value) => setPhone(formatPhoneInput(value))}
               keyboardType="phone-pad"
               placeholder="Телефон"
               placeholderTextColor="#939393"
             />
+            {!isPhoneValid(phone) ? (
+              <Text style={styles.errorText}>Введите телефон в формате +7 777 123 12 12</Text>
+            ) : null}
           </View>
 
           <View style={styles.fieldWrap}>
@@ -112,30 +118,11 @@ export default function AgencySettingsScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Сотрудники</Text>
-
-          <View style={styles.employeeList}>
-            {EMPLOYEES.map((employee) => (
-              <View key={employee.id} style={styles.employeeCard}>
-                <View style={styles.employeeTopRow}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{employee.initials}</Text>
-                  </View>
-
-                  <View style={styles.employeeInfo}>
-                    <Text style={styles.employeeName}>{employee.name}</Text>
-                    <Text style={styles.employeeEmail}>{employee.email}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.rolePill}>
-                  <Text style={styles.roleText}>{employee.role}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-
+        <View style={[styles.card, styles.securityCard]}>
+          <Text style={styles.cardTitle}>Безопасность</Text>
+          <Pressable style={styles.secondaryButton} onPress={() => router.push('/change-password')}>
+            <Text style={styles.secondaryButtonText}>Изменить пароль</Text>
+          </Pressable>
         </View>
 
         <LogoutActionCard
@@ -199,6 +186,15 @@ const styles = StyleSheet.create({
     color: '#3A3A3A',
     textAlignVertical: 'center',
   },
+  readOnlyInput: {
+    color: '#777777',
+  },
+  errorText: {
+    marginTop: 6,
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#D14F4F',
+  },
   textArea: {
     marginTop: 4,
     minHeight: 96,
@@ -224,63 +220,20 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '500',
   },
-  employeeList: {
-    marginTop: 14,
-    gap: 12,
+  securityCard: {
+    paddingBottom: 16,
   },
-  employeeCard: {
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F3F3F3',
-    padding: 16,
-  },
-  employeeTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  avatar: {
-    width: 48,
+  secondaryButton: {
+    marginTop: 12,
     height: 48,
-    borderRadius: 999,
-    backgroundColor: '#70A0FF',
+    borderRadius: 10,
+    backgroundColor: '#F0F7FF',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
+  secondaryButtonText: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  employeeInfo: {
-    flex: 1,
-  },
-  employeeName: {
-    fontSize: 15,
-    lineHeight: 23,
-    color: '#3A3A3A',
-    fontWeight: '600',
-  },
-  employeeEmail: {
-    marginTop: 2,
-    fontSize: 13,
-    lineHeight: 20,
-    color: '#939393',
-  },
-  rolePill: {
-    marginTop: 12,
-    alignSelf: 'flex-start',
-    backgroundColor: '#F0F7FF',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 32,
-    justifyContent: 'center',
-  },
-  roleText: {
-    fontSize: 13,
-    lineHeight: 20,
     color: '#70A0FF',
     fontWeight: '500',
   },

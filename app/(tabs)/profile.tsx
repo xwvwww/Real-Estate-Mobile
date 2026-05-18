@@ -155,7 +155,6 @@ export default function ProfileScreen() {
               autoCapitalize="none"
               placeholderTextColor="#8F8F8F"
             />
-            <Text style={styles.helperText}>Email пока не редактируется через mobile API.</Text>
           </View>
 
           <View style={[styles.fieldWrap, styles.lastField]}>

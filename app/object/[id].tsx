@@ -2,12 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyState } from '@/components/EmptyState';
 import UserMapCard from '@/components/UserMapCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchListingById } from '@/lib/api';
+import { fetchNearbyPlaces, type NearbyPlace } from '@/lib/geo';
 import {
   mapApiListingToCatalogListing,
   mapUserListingToCatalogListing,
@@ -29,6 +30,9 @@ export default function ObjectDetailsScreen() {
   const [loading, setLoading] = useState(isRemoteListingId);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeSlide] = useState(0);
+  const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [nearbyError, setNearbyError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,6 +76,44 @@ export default function ObjectDetailsScreen() {
 
   const listing = remoteListing ?? localListing;
   const isFavorite = useIsFavorite(listing?.id ?? '', session);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (typeof listing?.latitude !== 'number' || typeof listing.longitude !== 'number') {
+      setNearbyPlaces([]);
+      setNearbyError(null);
+      setNearbyLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setNearbyLoading(true);
+    setNearbyError(null);
+
+    fetchNearbyPlaces(listing.latitude, listing.longitude)
+      .then((places) => {
+        if (!cancelled) {
+          setNearbyPlaces(places);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setNearbyPlaces([]);
+          setNearbyError('Не удалось загрузить объекты рядом');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setNearbyLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [listing?.latitude, listing?.longitude]);
 
   const listingImages = useMemo(() => {
     if (!listing) {
@@ -204,6 +246,32 @@ export default function ObjectDetailsScreen() {
             </View>
           ))}
         </View>
+
+        <View style={styles.nearbyHeader}>
+          <Text style={styles.sectionTitle}>Что рядом</Text>
+          {nearbyLoading ? <ActivityIndicator size="small" color="#70A0FF" /> : null}
+        </View>
+        {nearbyError ? <Text style={styles.nearbyError}>{nearbyError}</Text> : null}
+        {!nearbyLoading && !nearbyError && nearbyPlaces.length === 0 ? (
+          <Text style={styles.sectionText}>Поблизости пока ничего не найдено.</Text>
+        ) : null}
+        {nearbyPlaces.length > 0 ? (
+          <View style={styles.nearbyGrid}>
+            {nearbyPlaces.map((place) => (
+              <View key={place.id} style={styles.nearbyCard}>
+                <Ionicons name="location-outline" size={16} color="#70A0FF" />
+                <View style={styles.nearbyTextWrap}>
+                  <Text style={styles.nearbyName} numberOfLines={1}>
+                    {place.name}
+                  </Text>
+                  <Text style={styles.nearbyMeta}>
+                    {place.type} · {place.distanceMeters} м
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         <Text style={styles.sectionTitle}>Расположение</Text>
         <UserMapCard
@@ -349,6 +417,47 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   featureTagText: { fontSize: 13, lineHeight: 20, color: '#70A0FF' },
+  nearbyHeader: {
+    marginTop: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  nearbyGrid: {
+    marginTop: 12,
+    gap: 8,
+  },
+  nearbyCard: {
+    minHeight: 50,
+    borderRadius: 10,
+    backgroundColor: '#F8F8F8',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  nearbyTextWrap: {
+    flex: 1,
+  },
+  nearbyName: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#3A3A3A',
+    fontWeight: '500',
+  },
+  nearbyMeta: {
+    marginTop: 2,
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#939393',
+  },
+  nearbyError: {
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#D9534F',
+  },
   agencyCard: {
     marginTop: 24,
     backgroundColor: '#F8F8F8',

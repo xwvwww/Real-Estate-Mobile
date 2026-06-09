@@ -95,6 +95,33 @@ export default function AgencyMessageViewScreen() {
     };
   }, [id, session]);
 
+  useEffect(() => {
+    if (!id || !session?.token || loading || loadError) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const syncMessages = async () => {
+      try {
+        const applicationMessages = await fetchApplicationMessages(id, session.token);
+
+        if (!cancelled) {
+          setMessages(applicationMessages.map((item) => mapApiMessageToChatMessage(item, session)));
+        }
+      } catch {
+        // Keep the current conversation visible if a polling tick fails.
+      }
+    };
+
+    const intervalId = setInterval(syncMessages, 2500);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [id, loadError, loading, session]);
+
   const conversation = useMemo(() => messages, [messages]);
 
   const sendMessage = async () => {
@@ -107,6 +134,8 @@ export default function AgencyMessageViewScreen() {
       const createdMessage = await createApplicationMessage(id, draft.trim(), session.token);
       setMessages((current) => [...current, mapApiMessageToChatMessage(createdMessage, session)]);
       setDraft('');
+      const nextMessages = await fetchApplicationMessages(id, session.token);
+      setMessages(nextMessages.map((item) => mapApiMessageToChatMessage(item, session)));
     } catch (error) {
       Alert.alert(
         'Не удалось отправить сообщение',

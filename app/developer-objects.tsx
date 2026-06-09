@@ -1,15 +1,51 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
 import { EmptyState } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/StatusBadge';
-import { DEVELOPER_OBJECTS } from '@/constants/developerData';
 import { CARD_RADIUS, ELEVATED_CARD_SHADOW } from '@/constants/ui';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchListings, type ApiListing } from '@/lib/api';
+import { filterCompanyListings, formatListingDate, getListingStatusMeta } from '@/lib/companyListings';
 
 export default function DeveloperObjectsScreen() {
   const router = useRouter();
+  const { session } = useAuth();
+  const [objects, setObjects] = useState<ApiListing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setLoading(true);
+    setLoadError(null);
+
+    Promise.all([fetchListings({ dealType: 'buy' }), fetchListings({ dealType: 'rent' })])
+      .then(([saleListings, rentListings]) => {
+        if (!cancelled) {
+          setObjects(filterCompanyListings([...saleListings, ...rentListings], session?.user.company_id));
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setObjects([]);
+          setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить объекты');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user.company_id]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -27,30 +63,43 @@ export default function DeveloperObjectsScreen() {
           showsVerticalScrollIndicator={false}
           bounces={false}
           overScrollMode="never">
-          {DEVELOPER_OBJECTS.length === 0 ? (
+          {loading ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator color="#70A0FF" />
+              <Text style={styles.loadingText}>Загружаем объекты...</Text>
+            </View>
+          ) : null}
+
+          {!loading && loadError ? (
+            <EmptyState icon="cloud-offline-outline" title="Не удалось загрузить объекты" description={loadError} />
+          ) : null}
+
+          {!loading && !loadError && objects.length === 0 ? (
             <EmptyState icon="home-outline" title="Пока нет объектов" description="Добавленные объекты будут отображаться в этом разделе" />
           ) : null}
 
-          {DEVELOPER_OBJECTS.map((item) => (
+          {objects.map((item) => {
+            const status = getListingStatusMeta(item.status);
+            return (
             <Pressable
               key={item.id}
               style={styles.card}
-              onPress={() => router.push({ pathname: '/developer-object-view/[id]', params: { id: item.id } })}>
+              onPress={() => router.push({ pathname: '/developer-object-view/[id]', params: { id: String(item.id) } })}>
               <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.project}>{item.project}</Text>
+              <Text style={styles.project}>{item.city}</Text>
 
               <View style={styles.metaRow}>
-                <StatusBadge label={item.status.label} backgroundColor={item.status.bg} textColor={item.status.color} />
+                <StatusBadge label={status.label} backgroundColor={status.bg} textColor={status.color} />
 
                 <View style={styles.viewsWrap}>
                   <Ionicons name="eye-outline" size={14} color="#939393" />
-                  <Text style={styles.viewsText}>{item.views}</Text>
+                  <Text style={styles.viewsText}>0</Text>
                 </View>
               </View>
 
-              <Text style={styles.date}>{item.date}</Text>
+              <Text style={styles.date}>{formatListingDate(item.created_at)}</Text>
             </Pressable>
-          ))}
+          )})}
         </ScrollView>
 
         <Pressable style={styles.addButton} onPress={() => router.push('/developer-create-object')}>
@@ -111,6 +160,17 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 16,
     ...ELEVATED_CARD_SHADOW,
+  },
+  loadingWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 24,
+  },
+  loadingText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#737373',
   },
   title: {
     fontSize: 16,

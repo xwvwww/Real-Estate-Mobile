@@ -1,11 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AgencyBottomBar } from '@/components/AgencyBottomBar';
+import { EmptyState } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/StatusBadge';
-import { AGENCY_LISTINGS } from '@/constants/agencyData';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchApplications, fetchListings, type ApiApplication, type ApiListing } from '@/lib/api';
+import {
+  countActiveListings,
+  countModerationListings,
+  filterCompanyListings,
+  formatListingDate,
+  getListingStatusMeta,
+} from '@/lib/companyListings';
+import { mapApiListingToCatalogListing } from '@/lib/listings';
 
 type MetricItem = {
   id: string;
@@ -65,6 +76,75 @@ const METRICS: MetricItem[] = [
 
 export default function AgencyDashboardScreen() {
   const router = useRouter();
+  const { session } = useAuth();
+  const [listings, setListings] = useState<ApiListing[]>([]);
+  const [applications, setApplications] = useState<ApiApplication[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!session?.token) {
+      setListings([]);
+      setApplications([]);
+      setLoading(false);
+      setLoadError('Войдите в аккаунт агентства, чтобы увидеть обзор');
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setLoading(true);
+    setLoadError(null);
+
+    Promise.all([fetchListings({ dealType: 'buy' }), fetchListings({ dealType: 'rent' }), fetchApplications(session.token)])
+      .then(([saleListings, rentListings, nextApplications]) => {
+        if (cancelled) {
+          return;
+        }
+
+        const mergedListings = [...saleListings, ...rentListings];
+        const companyListings = filterCompanyListings(mergedListings, session.user.company_id);
+        setListings(companyListings);
+        setApplications(nextApplications);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setListings([]);
+          setApplications([]);
+          setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить обзор');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+
+  const metrics = useMemo<MetricItem[]>(
+    () => [
+      { ...METRICS[0], value: String(listings.length) },
+      { ...METRICS[1], value: String(countActiveListings(listings)) },
+      { ...METRICS[2], value: String(countModerationListings(listings)) },
+      { ...METRICS[3], value: '0' },
+      { ...METRICS[4], value: String(applications.length) },
+    ],
+    [applications.length, listings]
+  );
+
+  const recentListings = useMemo(
+    () =>
+      [...listings]
+        .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
+        .slice(0, 3),
+    [listings]
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -78,8 +158,19 @@ export default function AgencyDashboardScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never">
+        {loading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator color="#70A0FF" />
+            <Text style={styles.loadingText}>Загружаем обзор...</Text>
+          </View>
+        ) : null}
+
+        {!loading && loadError ? (
+          <EmptyState icon="cloud-offline-outline" title="Не удалось загрузить обзор" description={loadError} />
+        ) : null}
+
         <View style={styles.metricList}>
-          {METRICS.map((metric) => (
+          {metrics.map((metric) => (
             <Pressable
               key={metric.id}
               style={styles.metricCard}
@@ -103,20 +194,27 @@ export default function AgencyDashboardScreen() {
         </View>
 
         <View style={styles.listingList}>
-          {AGENCY_LISTINGS.slice(0, 3).map((listing) => (
+          {!loading && !loadError && recentListings.length === 0 ? (
+            <EmptyState icon="newspaper-outline" title="Пока нет объявлений" description="Объявления компании появятся здесь после создания" />
+          ) : null}
+
+          {recentListings.map((listing, index) => {
+            const card = mapApiListingToCatalogListing(listing, index);
+            const status = getListingStatusMeta(listing.status);
+            return (
             <Pressable key={listing.id} style={styles.listingCard} onPress={() => router.push(`/agency-listing-view/${listing.id}` as any)}>
-              <Image source={listing.image} contentFit="cover" style={styles.listingImage} />
+              <Image source={card.image} contentFit="cover" style={styles.listingImage} />
               <View style={styles.listingBody}>
-                <Text style={styles.listingTitle}>{listing.title}</Text>
-                <Text style={styles.listingType}>{listing.type}</Text>
+                <Text style={styles.listingTitle}>{card.title}</Text>
+                <Text style={styles.listingType}>{card.propertyType}</Text>
 
                 <View style={styles.listingMetaRow}>
-                  <StatusBadge label={listing.status} backgroundColor={listing.statusBg} textColor={listing.statusColor} />
-                  <Text style={styles.listingDate}>{listing.date}</Text>
+                  <StatusBadge label={status.label} backgroundColor={status.bg} textColor={status.color} />
+                  <Text style={styles.listingDate}>{formatListingDate(listing.created_at)}</Text>
                 </View>
               </View>
             </Pressable>
-          ))}
+          )})}
         </View>
       </ScrollView>
 
@@ -156,6 +254,17 @@ const styles = StyleSheet.create({
   },
   metricList: {
     gap: 12,
+  },
+  loadingWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 24,
+  },
+  loadingText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#737373',
   },
   metricCard: {
     backgroundColor: '#FFFFFF',

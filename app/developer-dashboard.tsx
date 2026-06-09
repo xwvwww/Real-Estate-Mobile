@@ -1,10 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DeveloperBottomBar } from '@/components/DeveloperBottomBar';
+import { EmptyState } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/StatusBadge';
-import { DEVELOPER_PROJECTS } from '@/constants/developerData';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchApplications, fetchListings, fetchProjects, type ApiApplication, type ApiListing, type ApiProject } from '@/lib/api';
+import { countActiveListings, countModerationListings, filterCompanyListings } from '@/lib/companyListings';
 
 type MetricCard = {
   id: string;
@@ -60,6 +64,12 @@ const METRICS: MetricCard[] = [
 
 export default function DeveloperDashboardScreen() {
   const router = useRouter();
+  const { session } = useAuth();
+  const [projects, setProjects] = useState<ApiProject[]>([]);
+  const [objects, setObjects] = useState<ApiListing[]>([]);
+  const [applications, setApplications] = useState<ApiApplication[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const openProjects = () => router.replace('/developer-projects');
   const openObjects = () => router.replace('/developer-objects');
@@ -70,6 +80,68 @@ export default function DeveloperDashboardScreen() {
     if (id === 'active') return openObjects();
     if (id === 'requests') return openRequests();
   };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!session?.token) {
+      setProjects([]);
+      setObjects([]);
+      setApplications([]);
+      setLoading(false);
+      setLoadError('Войдите в аккаунт застройщика, чтобы увидеть обзор');
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setLoading(true);
+    setLoadError(null);
+
+    Promise.all([
+      fetchProjects(session.token),
+      fetchListings({ dealType: 'buy' }),
+      fetchListings({ dealType: 'rent' }),
+      fetchApplications(session.token),
+    ])
+      .then(([nextProjects, saleListings, rentListings, nextApplications]) => {
+        if (cancelled) {
+          return;
+        }
+
+        setProjects(nextProjects);
+        setObjects(filterCompanyListings([...saleListings, ...rentListings], session.user.company_id));
+        setApplications(nextApplications);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setProjects([]);
+          setObjects([]);
+          setApplications([]);
+          setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить обзор');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+
+  const metrics = useMemo<MetricCard[]>(
+    () => [
+      { ...METRICS[0], value: String(projects.length) },
+      { ...METRICS[1], value: String(countActiveListings(objects)) },
+      { ...METRICS[2], value: String(countModerationListings(objects)) },
+      { ...METRICS[3], value: '0' },
+      { ...METRICS[4], value: String(applications.length) },
+    ],
+    [applications.length, objects, projects.length]
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -83,8 +155,19 @@ export default function DeveloperDashboardScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
         overScrollMode="never">
+        {loading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator color="#70A0FF" />
+            <Text style={styles.loadingText}>Загружаем обзор...</Text>
+          </View>
+        ) : null}
+
+        {!loading && loadError ? (
+          <EmptyState icon="cloud-offline-outline" title="Не удалось загрузить обзор" description={loadError} />
+        ) : null}
+
         <View style={styles.metricsWrap}>
-          {METRICS.map((metric) => (
+          {metrics.map((metric) => (
             <Pressable key={metric.id} style={styles.metricCard} onPress={() => onMetricPress(metric.id)}>
               <View style={styles.metricTextWrap}>
                 <Text style={styles.metricValue}>{metric.value}</Text>
@@ -105,23 +188,27 @@ export default function DeveloperDashboardScreen() {
         </View>
 
         <View style={styles.projectsWrap}>
-          {DEVELOPER_PROJECTS.slice(0, 3).map((project) => (
+          {!loading && !loadError && projects.length === 0 ? (
+            <EmptyState icon="business-outline" title="Пока нет проектов" description="Создайте первый проект, чтобы он появился в обзоре" />
+          ) : null}
+
+          {projects.slice(0, 3).map((project) => (
             <Pressable
               key={project.id}
               style={styles.projectCard}
-              onPress={() => router.push({ pathname: '/developer-project-view/[id]', params: { id: project.id } })}>
-              <Text style={styles.projectTitle}>{project.title}</Text>
+              onPress={() => router.push({ pathname: '/developer-project-view/[id]', params: { id: String(project.id) } })}>
+              <Text style={styles.projectTitle}>{project.name}</Text>
               <View style={styles.projectStatsRow}>
                 <View style={styles.projectStat}>
-                  <Text style={styles.projectStatLabel}>Объектов</Text>
-                  <Text style={styles.projectStatValue}>{project.units}</Text>
+                  <Text style={styles.projectStatLabel}>Город</Text>
+                  <Text style={styles.projectStatValue}>{project.city}</Text>
                 </View>
                 <View style={styles.projectStat}>
-                  <Text style={styles.projectStatLabel}>Просмотры</Text>
-                  <Text style={styles.projectStatValue}>{project.views}</Text>
+                  <Text style={styles.projectStatLabel}>ID</Text>
+                  <Text style={styles.projectStatValue}>{project.id}</Text>
                 </View>
               </View>
-              <StatusBadge label={project.status} backgroundColor={project.statusBg} textColor={project.statusColor} />
+              <StatusBadge label="Активен" backgroundColor="#E8F5E9" textColor="#388E3C" />
             </Pressable>
           ))}
         </View>
@@ -159,6 +246,17 @@ const styles = StyleSheet.create({
   },
   metricsWrap: {
     gap: 12,
+  },
+  loadingWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 24,
+  },
+  loadingText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#737373',
   },
   metricCard: {
     backgroundColor: '#FFFFFF',

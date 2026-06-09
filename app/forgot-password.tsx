@@ -190,6 +190,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#6F9BFF',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 18,
     marginBottom: 12,
   },
   primaryButtonText: {

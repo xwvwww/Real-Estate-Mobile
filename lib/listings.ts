@@ -1,6 +1,6 @@
 import type { ImageSourcePropType } from 'react-native';
 import type { UserListing } from '@/constants/userListings';
-import type { ApiFavoriteListing, ApiListing } from '@/lib/api';
+import { resolveBackendAssetUrl, type ApiFavoriteListing, type ApiListing } from '@/lib/api';
 
 export type CatalogDealType = 'buy' | 'rent';
 
@@ -58,7 +58,7 @@ function toImageSources(listing: ApiListing, index: number) {
   const remoteImages = (listing.media ?? [])
     .filter((media) => Boolean(media?.url))
     .sort((left, right) => left.position - right.position)
-    .map((media) => ({ uri: media.url }));
+    .map((media) => ({ uri: resolveBackendAssetUrl(media.url) }));
 
   if (remoteImages.length > 0) {
     return remoteImages;

@@ -106,6 +106,47 @@ export default function MessageDetailsScreen() {
     };
   }, [id, session]);
 
+  useEffect(() => {
+    if (!id || !session?.token || loading || loadError) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const syncMessages = async () => {
+      try {
+        const applicationMessages = await fetchApplicationMessages(id, session.token);
+
+        if (cancelled) {
+          return;
+        }
+
+        setMessages(applicationMessages.map((item) => mapApiMessageToChatMessage(item, session)));
+
+        const lastMessage = applicationMessages[applicationMessages.length - 1];
+        if (lastMessage) {
+          setChat((current) =>
+            current
+              ? {
+                  ...current,
+                  preview: lastMessage.body,
+                }
+              : current
+          );
+        }
+      } catch {
+        // Keep the current conversation visible if a polling tick fails.
+      }
+    };
+
+    const intervalId = setInterval(syncMessages, 2500);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [id, loadError, loading, session]);
+
   const listing = useMemo(() => {
     if (!listingId || !listingTitle) {
       return null;
@@ -129,6 +170,8 @@ export default function MessageDetailsScreen() {
       const createdMessage = await createApplicationMessage(id, draft.trim(), session.token);
       setMessages((current) => [...current, mapApiMessageToChatMessage(createdMessage, session)]);
       setDraft('');
+      const nextMessages = await fetchApplicationMessages(id, session.token);
+      setMessages(nextMessages.map((item) => mapApiMessageToChatMessage(item, session)));
     } catch (error) {
       Alert.alert(
         'Не удалось отправить сообщение',

@@ -178,7 +178,7 @@ export type CreateListingPayload = {
   area?: number;
   floor?: number;
   total_floors?: number;
-  media?: Array<{ url: string; position?: number }>;
+  media?: { url: string; position?: number }[];
   rent_constraints?: {
     allow_children?: boolean;
     allow_pets?: boolean;
@@ -305,6 +305,17 @@ export const API_BASE_URL = (process.env.EXPO_PUBLIC_API_URL?.trim() || DEFAULT_
 function buildUrl(path: string) {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return `${API_BASE_URL}${normalizedPath}`;
+}
+
+export function resolveBackendAssetUrl(url: string) {
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  const apiUrl = new URL(API_BASE_URL);
+  const normalizedPath = url.startsWith('/') ? url : `/${url}`;
+
+  return `${apiUrl.origin}${normalizedPath}`;
 }
 
 async function readErrorMessage(response: Response) {

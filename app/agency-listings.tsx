@@ -1,16 +1,53 @@
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AgencyBottomBar } from '@/components/AgencyBottomBar';
 import { EmptyState } from '@/components/EmptyState';
 import { StatusBadge } from '@/components/StatusBadge';
-import { AGENCY_LISTINGS } from '@/constants/agencyData';
 import { CARD_RADIUS, LIGHT_CARD_SHADOW } from '@/constants/ui';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchListings, type ApiListing } from '@/lib/api';
+import { filterCompanyListings, formatListingDate, getListingStatusMeta } from '@/lib/companyListings';
+import { mapApiListingToCatalogListing } from '@/lib/listings';
 
 export default function AgencyListingsScreen() {
   const router = useRouter();
+  const { session } = useAuth();
+  const [listings, setListings] = useState<ApiListing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setLoading(true);
+    setLoadError(null);
+
+    Promise.all([fetchListings({ dealType: 'buy' }), fetchListings({ dealType: 'rent' })])
+      .then(([saleListings, rentListings]) => {
+        if (!cancelled) {
+          setListings(filterCompanyListings([...saleListings, ...rentListings], session?.user.company_id));
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setListings([]);
+          setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить объявления');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user.company_id]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -29,21 +66,35 @@ export default function AgencyListingsScreen() {
         bounces={false}
       overScrollMode="never">
         <View style={styles.listingList}>
-          {AGENCY_LISTINGS.length === 0 ? (
+          {loading ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator color="#70A0FF" />
+              <Text style={styles.loadingText}>Загружаем объявления...</Text>
+            </View>
+          ) : null}
+
+          {!loading && loadError ? (
+            <EmptyState icon="cloud-offline-outline" title="Не удалось загрузить объявления" description={loadError} />
+          ) : null}
+
+          {!loading && !loadError && listings.length === 0 ? (
             <EmptyState icon="newspaper-outline" title="Пока нет объявлений" description="Создайте первое объявление, чтобы оно появилось в списке" />
           ) : null}
 
-          {AGENCY_LISTINGS.map((listing) => (
+          {listings.map((listing, index) => {
+            const card = mapApiListingToCatalogListing(listing, index);
+            const status = getListingStatusMeta(listing.status);
+            return (
             <Pressable key={listing.id} style={styles.listingCard} onPress={() => router.push(`/agency-listing-view/${listing.id}` as any)}>
-              <Image source={listing.image} contentFit="cover" style={styles.listingImage} />
+              <Image source={card.image} contentFit="cover" style={styles.listingImage} />
 
               <View style={styles.listingBody}>
-                <Text style={styles.listingTitle}>{listing.title}</Text>
-                <Text style={styles.listingType}>{listing.type}</Text>
+                <Text style={styles.listingTitle}>{card.title}</Text>
+                <Text style={styles.listingType}>{card.propertyType}</Text>
 
                 <View style={styles.listingMetaRow}>
-                  <StatusBadge label={listing.status} backgroundColor={listing.statusBg} textColor={listing.statusColor} />
-                  <Text style={styles.listingDate}>{listing.date}</Text>
+                  <StatusBadge label={status.label} backgroundColor={status.bg} textColor={status.color} />
+                  <Text style={styles.listingDate}>{formatListingDate(listing.created_at)}</Text>
                 </View>
 
                 <Pressable
@@ -56,7 +107,7 @@ export default function AgencyListingsScreen() {
                 </Pressable>
               </View>
             </Pressable>
-          ))}
+          )})}
         </View>
       </ScrollView>
 
@@ -111,6 +162,17 @@ const styles = StyleSheet.create({
   },
   listingList: {
     gap: 12,
+  },
+  loadingWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 24,
+  },
+  loadingText: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#737373',
   },
   listingCard: {
     backgroundColor: '#FFFFFF',
